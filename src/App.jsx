@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Line, ReferenceLine, ComposedChart } from "recharts";
+import { Analytics } from '@vercel/analytics/react';
 
 // ─── DATA ────────────────────────────────────────────────────────────────────
 // Note: Several tabs use Stephen Few's visualization techniques (bullet charts,
@@ -596,7 +597,7 @@ const SourcesView = () => (
         <div style={{ marginTop: 16, padding: "12px", background: "#151512", borderRadius: 6, borderLeft: "3px solid #C9956B" }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: "#C9956B", marginBottom: 6, fontFamily: "'IBM Plex Sans', sans-serif" }}>Data Limitations</div>
           <div style={{ fontSize: 11, color: "#999", lineHeight: 1.6, fontFamily: "'IBM Plex Sans', sans-serif" }}>
-            • Banks &lt;$10B in assets are not required to break out NDFI subcategories<br />
+            ��� Banks &lt;$10B in assets are not required to break out NDFI subcategories<br />
             • JPMorgan reported its entire NDFI portfolio as "Other," declining to provide subcategory detail<br />
             • Call Report data is quarterly; real-time exposure may differ<br />
             • Unfunded commitments can be drawn at any time, adding contingent exposure<br />
@@ -685,6 +686,7 @@ export default function App() {
           </button>
         ))}
       </nav>
+      <Analytics />
     </div>
   );
 }
