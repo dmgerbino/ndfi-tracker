@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Line, ReferenceLine, ComposedChart } from "recharts";
 
 // ─── GLOBAL STYLE INJECTION ──────────────────────────────────────────────────
@@ -89,11 +89,95 @@ const TABS = [
   {id:"overview",label:"Overview",icon:"◉"},{id:"table",label:"Table",icon:"≡"},
   {id:"ranking",label:"Rank",icon:"▊"},{id:"mix",label:"Mix",icon:"◫"},
   {id:"risk",label:"Risk",icon:"◈"},{id:"guide",label:"Guide",icon:"?"},
-  {id:"sources",label:"Sources",icon:"⊞"},
+  {id:"learn",label:"Learn",icon:"⊞"},
 ];
 
-// ─── LAYOUT CONSTANTS ────────────────────────────────────────────────────────
-const BANNER_H = 62;
+// ─── EDUCATIONAL CONTENT ─────────────────────────────────────────────────────
+const METRIC_EDUCATION = {
+  totalNdfi: {
+    label: "Total NDFI Loans",
+    value: "$1.57T",
+    what: "The total dollar value of loans that U.S. commercial banks have extended to non-depository financial institutions as of the end of 2025. This is the headline number — the aggregate size of the pipeline between traditional banking and the shadow lending system. At $1.57 trillion, it exceeds the GDP of most countries and represents one of the fastest-growing loan categories on bank balance sheets.",
+    risk: "The sheer size creates concentration risk at the system level. If a broad repricing of private credit assets occurs — triggered by rising defaults in leveraged lending, commercial real estate stress, or a liquidity crisis in mortgage markets — banks collectively holding $1.57T in NDFI exposure have limited ability to reduce that position quickly. NDFI loans are not liquid instruments. They cannot be sold easily in a stressed market, meaning banks may be forced to hold deteriorating assets while simultaneously facing deposit pressure or capital calls elsewhere.",
+  },
+  cagr: {
+    label: "15-Year CAGR",
+    value: "21.9%",
+    what: "Compound annual growth rate measures how fast NDFI lending has grown on average each year since 2010. At 21.9%, this category has roughly doubled every 3.5 years — far outpacing GDP growth, inflation, and most traditional loan categories. It signals that banks have been systematically increasing their dependence on — and exposure to — the non-bank lending sector.",
+    risk: "Sustained exponential growth in any asset category is historically a warning sign. The S&L crisis, the 2008 mortgage collapse, and the 2023 regional bank failures were all preceded by extended periods of rapid loan growth in a single category. Growth at this rate also means the regulatory framework has almost certainly not kept pace — supervisory tools, stress test scenarios, and capital requirements were calibrated for a smaller, slower-growing NDFI sector. The faster a category grows, the less historical data exists to model its behavior in a severe downturn.",
+  },
+  tier1All: {
+    label: "NDFI / Tier 1 (All Banks)",
+    value: "52%",
+    what: "Tier 1 capital is a bank's highest-quality capital buffer — the equity and retained earnings that absorb losses before a bank becomes insolvent. This metric expresses total NDFI lending as a percentage of that buffer across all 21 banks. At 52%, the industry has lent the equivalent of more than half its core capital cushion into the non-bank lending system. The higher this ratio, the less buffer exists if NDFI borrowers default at scale.",
+    risk: "A 52% ratio means that if NDFI loans experienced a loss rate of even 10–15% — not unprecedented in a credit cycle downturn — the resulting losses would consume 5–8% of industry Tier 1 capital. That would push several banks toward regulatory minimums simultaneously, potentially triggering supervisory intervention, dividend cuts, or emergency capital raises at a moment when markets are already stressed. The feedback loop between bank capital stress and NDFI borrower stress could be self-reinforcing.",
+  },
+  tier1Large: {
+    label: "NDFI / Tier 1 (>$100B Banks)",
+    value: "68%",
+    what: "The same Tier 1 ratio calculated only for banks with assets exceeding $100 billion. Large banks show significantly higher NDFI concentration — 68% versus 52% industry-wide — reflecting their deeper relationships with large private credit funds, mortgage REITs, and other institutional NDFIs. These are also the banks whose failure would carry the greatest systemic consequences.",
+    risk: "Large banks are subject to enhanced prudential standards precisely because their failure carries systemic consequences. A 68% Tier 1 ratio at these institutions means the too-big-to-fail banks are also the most exposed to NDFI stress. In a severe scenario, federal intervention — emergency lending facilities, regulatory forbearance, or direct support — could again become necessary, repeating the moral hazard dynamic last seen in 2008. Taxpayer exposure, while not guaranteed, becomes a relevant tail risk at these concentration levels.",
+  },
+  delinquency: {
+    label: "Delinquency Rate",
+    value: "0.14%",
+    what: "The share of NDFI loans that are 30 or more days past due. At 0.14%, current delinquency is very low by historical standards — suggesting NDFI borrowers are, for now, meeting their obligations. However, NDFI delinquencies tend to spike suddenly rather than build gradually, because many NDFIs are themselves leveraged lenders whose stress can materialize quickly when their underlying borrowers default.",
+    risk: "Low current delinquency can create a false sense of security. NDFI portfolios have never been stress-tested through a full credit cycle at this scale. Many of the underlying loans that NDFIs have made — leveraged buyout debt, bridge loans, consumer subprime — are themselves vulnerable to rate sensitivity and economic slowdown. When NDFI borrowers begin defaulting, bank delinquency rates can move from near-zero to crisis levels within two to three quarters, leaving little time for orderly risk reduction. The 0.14% figure reflects today's environment, not tomorrow's.",
+  },
+  unfunded: {
+    label: "Unfunded Commitments",
+    value: "$987B",
+    what: "Beyond the $1.57T already lent, banks have committed to lend an additional $987 billion to NDFIs on demand — credit lines, revolving facilities, and loan commitments that haven't been drawn yet. This shadow exposure is nearly as large as the funded book. If NDFI borrowers draw on these commitments simultaneously during a stress event, bank balance sheets could expand rapidly at precisely the wrong moment.",
+    risk: "Unfunded commitments are the most underappreciated risk in this dataset. In normal times, credit lines are drawn gradually and repaid routinely. In a stress scenario, the dynamic reverses: NDFIs facing liquidity pressure draw on every available credit facility simultaneously, while banks are simultaneously less able to absorb the balance sheet expansion. This is sometimes called a 'double whammy' — loan losses on the funded book arrive at the same time as forced balance sheet growth from commitment draws. The $987B represents potential rapid balance sheet expansion of up to 63% on top of current funded exposure.",
+  },
+  top10Share: {
+    label: "Top 10 Share",
+    value: "71%",
+    what: "The ten largest NDFI lenders account for 71% of all exposure. This concentration means the risk is not evenly distributed — a handful of institutions are disproportionately connected to the non-bank lending system. It also means that stress at one or two large banks could have outsized effects on NDFI borrowers' ability to fund their operations.",
+    risk: "High concentration among a small number of lenders creates interconnection risk that is difficult to model. If the two or three largest NDFI lenders simultaneously tighten credit — whether due to regulatory pressure, capital constraints, or risk appetite changes — NDFIs that depend on those relationships could face sudden funding gaps. Unlike diversified borrowers who can seek alternative credit sources, many large NDFIs have highly customized facilities with specific banks that are not easily replaced. A pullback by a single top-10 lender could trigger liquidity stress across multiple NDFI counterparties simultaneously.",
+  },
+  qoqGrowth: {
+    label: "Q4 QoQ Growth",
+    value: "+7.3%",
+    what: "Quarter-over-quarter growth measures how much NDFI lending expanded in just the last three months of 2025. Adding $129.7 billion in a single quarter — equivalent to the entire NDFI book in 2015 — indicates that growth is not slowing. Sustained high QoQ growth is a leading indicator worth monitoring: it suggests appetite on both sides of the trade remains strong even as the aggregate exposure reaches historically unprecedented levels.",
+    risk: "Accelerating growth late in a credit cycle is a classic precursor to credit quality deterioration. As the most creditworthy NDFI borrowers reach their borrowing capacity, banks seeking continued growth may extend credit to progressively weaker counterparties — a dynamic known as 'reaching for yield' or standards erosion. The $129.7B added in a single quarter also means that a meaningful portion of the current book has never experienced a full credit cycle. Loans originated in 2024–2025 under benign conditions may perform very differently when rates stay elevated, asset valuations fall, or investor appetite for private credit products reverses.",
+  },
+};
+
+// ─── BOTTOM SHEET MODAL ───────────────────────────────────────────────────────
+const BottomSheet = ({content, onClose}) => {
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, []);
+  if (!content) return null;
+  return (
+    <div onClick={onClose} style={{position:"fixed",inset:0,zIndex:200,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"flex-end"}}>
+      <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:768,margin:"0 auto",background:"#141410",borderRadius:"16px 16px 0 0",border:"1px solid #333",borderBottom:"none",maxHeight:"80vh",overflowY:"auto",padding:"20px 20px 40px"}}>
+        <div style={{width:40,height:4,background:"#444",borderRadius:2,margin:"0 auto 20px"}} />
+        <div style={{fontSize:11,color:"#888",textTransform:"uppercase",letterSpacing:"0.1em",fontFamily:S.mono,marginBottom:4}}>{content.label}</div>
+        <div style={{fontSize:28,fontWeight:700,color:"#e0e0e0",fontFamily:S.mono,marginBottom:16}}>{content.value}</div>
+        <div style={{fontSize:14,color:"#bbb",lineHeight:1.75,fontFamily:S.ff,marginBottom:20}}>{content.what}</div>
+        <div style={{background:"#1a1108",border:"1px solid #3a2a10",borderLeft:"3px solid #D4A054",borderRadius:6,padding:"14px 16px"}}>
+          <div style={{fontSize:12,fontWeight:700,color:"#D4A054",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:8,fontFamily:S.mono}}>Risk Considerations</div>
+          <div style={{fontSize:13,color:"#bbb",lineHeight:1.75,fontFamily:S.ff}}>{content.risk}</div>
+        </div>
+        <button onClick={onClose} style={{marginTop:20,width:"100%",padding:"14px",background:"#222",border:"1px solid #444",color:"#aaa",fontSize:14,borderRadius:8,cursor:"pointer",fontFamily:S.ff}}>Close</button>
+      </div>
+    </div>
+  );
+};
+
+// ─── TITLE MODAL ──────────────────────────────────────────────────────────────
+const TITLE_EDUCATION = {
+  label: "About This Tracker",
+  value: "NDFI Exposure Tracker",
+  what: "Non-depository financial institutions (NDFIs) are lenders that don't take deposits — mortgage companies, private credit funds, consumer finance companies, and others. They depend heavily on borrowing from traditional banks to fund their own lending.\n\nThis tracker measures how exposed America's largest commercial banks are to that system — how much they've lent to NDFIs, what types, and whether that exposure represents a meaningful risk to their capital position.\n\nWhen NDFI borrowers run into trouble, the banks behind them feel it. Understanding this web of lending is central to understanding where the next stress in the financial system might emerge.",
+  risk: "NDFI lending has grown at a 21.9% compound annual rate over 15 years — far outpacing traditional loan categories. Regulators are paying close attention. In December 2025, the FDIC and OCC rescinded the 2013 Interagency Guidance on Leveraged Lending — removing a key guardrail at precisely the moment when exposure is at an all-time high. This tracker puts that data in one place.",
+};
+
+
+const BANNER_H = 76;
 const NAV_H = 56;
 const S = { ff:"'IBM Plex Sans',sans-serif", mono:"'IBM Plex Mono',monospace" };
 
@@ -137,24 +221,33 @@ const SectionHeader = ({children}) => (
 
 // ─── TAB: OVERVIEW ───────────────────────────────────────────────────────────
 const OverviewView = () => {
+  const [sheet, setSheet] = useState(null);
   const stats = [
-    {label:"Total NDFI Loans",value:"$1.57T",sub:"Q4 2025"},{label:"15-Year CAGR",value:"21.9%",sub:"Since Q1 2010"},
-    {label:"NDFI / Tier 1 (All)",value:"52%",sub:"All banks"},{label:"NDFI / Tier 1 (>$100B)",value:"68%",sub:"Large banks"},
-    {label:"Delinquency Rate",value:"0.14%",sub:"Industry-wide"},{label:"Unfunded Commitments",value:"$987B",sub:"42.9% of total"},
-    {label:"Top 10 Share",value:"71%",sub:"Of total NDFI"},{label:"Q4 QoQ Growth",value:"+7.3%",sub:"+$129.7B in quarter"},
+    {label:"Total NDFI Loans",value:"$1.57T",sub:"Q4 2025",edu:METRIC_EDUCATION.totalNdfi},
+    {label:"15-Year CAGR",value:"21.9%",sub:"Since Q1 2010",edu:METRIC_EDUCATION.cagr},
+    {label:"NDFI / Tier 1 (All)",value:"52%",sub:"All banks",edu:METRIC_EDUCATION.tier1All},
+    {label:"NDFI / Tier 1 (>$100B)",value:"68%",sub:"Large banks",edu:METRIC_EDUCATION.tier1Large},
+    {label:"Delinquency Rate",value:"0.14%",sub:"Industry-wide",edu:METRIC_EDUCATION.delinquency},
+    {label:"Unfunded Commitments",value:"$987B",sub:"42.9% of total",edu:METRIC_EDUCATION.unfunded},
+    {label:"Top 10 Share",value:"71%",sub:"Of total NDFI",edu:METRIC_EDUCATION.top10Share},
+    {label:"Q4 QoQ Growth",value:"+7.3%",sub:"+$129.7B in quarter",edu:METRIC_EDUCATION.qoqGrowth},
   ];
   return (
     <>
+      {sheet && <BottomSheet content={sheet} onClose={()=>setSheet(null)} />}
       <SectionHeader>
         <h2 style={{fontSize:18,fontWeight:700,color:"#e0e0e0",margin:0,fontFamily:S.ff}}>Industry Overview</h2>
-        <p style={{fontSize:12,color:"#888",margin:"4px 0 0",fontFamily:S.mono}}>U.S. Bank NDFI Exposure · Q4 2025</p>
+        <p style={{fontSize:12,color:"#888",margin:"4px 0 0",fontFamily:S.mono}}>U.S. Bank NDFI Exposure · Q4 2025 · <span style={{color:"#D4A054"}}>Tap any metric to learn more</span></p>
       </SectionHeader>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:1,background:"#222",padding:1}}>
         {stats.map((s,i)=>(
-          <div key={i} style={{background:"#111",padding:"16px 14px"}}>
+          <div key={i} onClick={()=>setSheet(s.edu)} style={{background:"#111",padding:"16px 14px",cursor:"pointer",position:"relative",WebkitTapHighlightColor:"transparent"}}
+            onMouseEnter={e=>e.currentTarget.style.background="#161612"}
+            onMouseLeave={e=>e.currentTarget.style.background="#111"}>
             <div style={{fontSize:11,color:"#888",textTransform:"uppercase",letterSpacing:"0.08em",marginBottom:5,fontFamily:S.ff}}>{s.label}</div>
             <div style={{fontSize:26,fontWeight:700,color:"#e0e0e0",fontFamily:S.mono,lineHeight:1}}>{s.value}</div>
             <div style={{fontSize:11,color:"#666",marginTop:5,fontFamily:S.mono}}>{s.sub}</div>
+            <div style={{position:"absolute",top:8,right:8,width:16,height:16,borderRadius:"50%",background:"#2a2218",border:"1px solid #D4A054",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#D4A054",fontWeight:700}}>i</div>
           </div>
         ))}
       </div>
@@ -200,66 +293,109 @@ const OverviewView = () => {
 };
 
 // ─── TAB: TABLE ──────────────────────────────────────────────────────────────
-const GCOLS = "minmax(110px,1.3fr) 58px 54px 54px 50px 50px";
+// 7 columns: Bank + 6 metrics. Min width forces horizontal scroll on mobile.
+const TABLE_MIN_W = 560;
+const COL_EDUCATION = {
+  ndfiTotal:   { label:"NDFI ($B)", title:"Total NDFI Loans", body:"The total funded dollar amount this bank has lent to non-depository financial institutions, in billions. Larger numbers indicate greater absolute exposure to the shadow lending system." },
+  ndfiPctLoans:{ label:"%Loan",     title:"NDFI as % of Gross Loans", body:"NDFI lending expressed as a share of the bank's entire loan portfolio. A high percentage means NDFIs dominate the balance sheet — the bank is deeply tied to alternative lenders relative to its other lending activities." },
+  ndfiPctTier1:{ label:"%T1",       title:"NDFI as % of Tier 1 Capital", body:"NDFI lending as a share of the bank's core capital cushion. Tier 1 capital is the equity buffer that absorbs losses before insolvency. The higher this percentage, the more of that buffer is at risk if NDFI borrowers default." },
+  qoqGrowth:   { label:"QoQ",       title:"Quarter-over-Quarter Growth", body:"How much this bank's NDFI lending grew from Q3 to Q4 2025. Rapid growth may indicate loosened underwriting standards or aggressive market-share pursuit. N/M means the growth rate is too large to be meaningful (e.g. Stifel expanded from near-zero)." },
+  delinquency: { label:"Dlnq",      title:"NDFI Delinquency Rate", body:"The percentage of this bank's NDFI loans that are 30+ days past due. Industry-wide this is 0.14% — very low. Because many NDFI borrowers use payment-in-kind (PIK) structures to defer interest payments, reported delinquency may understate real stress." },
+  unfunded:    { label:"Unfnd ($B)",title:"Unfunded Commitments", body:"Credit lines, revolving facilities, and loan commitments that haven't been drawn yet, in billions. These represent contingent exposure — if NDFI borrowers draw on these simultaneously during a stress event, bank balance sheets expand rapidly at the worst possible time." },
+};
 
 const DataTable = () => {
   const [sortKey,setSortKey] = useState("ndfiTotal");
   const [sortDir,setSortDir] = useState("desc");
   const [expanded,setExpanded] = useState(null);
+  const [colTip,setColTip] = useState(null);
   const sorted = useMemo(()=>[...BANKS].sort((a,b)=>sortDir==="desc"?b[sortKey]-a[sortKey]:a[sortKey]-b[sortKey]),[sortKey,sortDir]);
   const toggle = k => { if(sortKey===k) setSortDir(d=>d==="desc"?"asc":"desc"); else {setSortKey(k);setSortDir("desc");} };
 
-  const H = ({k,children,align="right"}) => (
-    <div onClick={()=>toggle(k)} style={{textAlign:align,padding:"10px 4px",cursor:"pointer",userSelect:"none",fontSize:11,fontWeight:700,color:sortKey===k?"#D4A054":"#999",whiteSpace:"nowrap",fontFamily:S.mono}}>
-      {children}{sortKey===k?(sortDir==="desc"?" ↓":" ↑"):""}
-    </div>
-  );
+  const H = ({k,children,align="right"}) => {
+    const edu = COL_EDUCATION[k];
+    return (
+      <div style={{textAlign:align,padding:"10px 4px",userSelect:"none",fontSize:11,fontWeight:700,color:sortKey===k?"#D4A054":"#999",whiteSpace:"nowrap",fontFamily:S.mono,display:"flex",alignItems:"center",justifyContent:align==="left"?"flex-start":"flex-end",gap:3}}>
+        <span onClick={()=>toggle(k)} style={{cursor:"pointer"}}>{children}{sortKey===k?(sortDir==="desc"?" ↓":" ↑"):""}</span>
+        {edu&&<span onClick={e=>{e.stopPropagation();setColTip(edu);}} style={{width:13,height:13,borderRadius:"50%",background:"#2a2218",border:"1px solid #554020",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:9,color:"#D4A054",cursor:"pointer",fontWeight:700,flexShrink:0}}>i</span>}
+      </div>
+    );
+  };
 
   return (
     <>
+      {colTip&&(
+        <div onClick={()=>setColTip(null)} style={{position:"fixed",inset:0,zIndex:200,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"flex-end"}}>
+          <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:768,margin:"0 auto",background:"#141410",borderRadius:"16px 16px 0 0",border:"1px solid #333",borderBottom:"none",padding:"20px 20px 36px"}}>
+            <div style={{width:40,height:4,background:"#444",borderRadius:2,margin:"0 auto 16px"}} />
+            <div style={{fontSize:12,color:"#888",textTransform:"uppercase",letterSpacing:"0.1em",fontFamily:S.mono,marginBottom:4}}>Column Definition</div>
+            <div style={{fontSize:20,fontWeight:700,color:"#e0e0e0",fontFamily:S.ff,marginBottom:12}}>{colTip.title}</div>
+            <div style={{fontSize:14,color:"#bbb",lineHeight:1.75,fontFamily:S.ff,marginBottom:16}}>{colTip.body}</div>
+            <button onClick={()=>setColTip(null)} style={{width:"100%",padding:"13px",background:"#222",border:"1px solid #444",color:"#aaa",fontSize:14,borderRadius:8,cursor:"pointer",fontFamily:S.ff}}>Close</button>
+          </div>
+        </div>
+      )}
       <SectionHeader>
         <h2 style={{fontSize:18,fontWeight:700,color:"#e0e0e0",margin:0,fontFamily:S.ff}}>Bank-Level NDFI Exposure</h2>
-        <p style={{fontSize:12,color:"#888",margin:"4px 0 0",fontFamily:S.mono}}>Q4 2025 · Tap row to expand</p>
-        <div style={{display:"grid",gridTemplateColumns:GCOLS,marginTop:10,marginLeft:-16,marginRight:-16,paddingLeft:16,paddingRight:16,borderBottom:"2px solid #333",marginBottom:-12}}>
-          <H k="name" align="left">Bank</H><H k="ndfiTotal">NDFI</H><H k="ndfiPctLoans">%Loan</H><H k="ndfiPctTier1">%T1</H><H k="qoqGrowth">QoQ</H><H k="delinquency">Dlnq</H>
-        </div>
+        <p style={{fontSize:12,color:"#888",margin:"4px 0 0",fontFamily:S.mono}}>Q4 2025 · Tap row to expand · <span style={{color:"#D4A054"}}>Swipe table right for more →</span></p>
       </SectionHeader>
-      {sorted.map((b,i)=>(
-        <div key={b.id}>
-          <div onClick={()=>setExpanded(expanded===b.id?null:b.id)} style={{display:"grid",gridTemplateColumns:GCOLS,cursor:"pointer",background:expanded===b.id?"#1a1a16":i%2===0?"#111":"#0d0d0d",padding:"0 16px",borderBottom:"1px solid #1a1a1a",alignItems:"center",minHeight:48}}>
-            <div style={{padding:"12px 4px 12px 0",color:"#ddd",fontWeight:600,fontFamily:S.ff,fontSize:14,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
-              <span style={{color:"#666",fontSize:10,marginRight:4}}>{expanded===b.id?"▾":"▸"}</span>{b.short}
+
+      {/* Scrollable table wrapper with fade affordance */}
+      <div style={{position:"relative"}}>
+        <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
+          <div style={{minWidth:TABLE_MIN_W}}>
+            {/* Sticky column header row */}
+            <div style={{display:"grid",gridTemplateColumns:"minmax(100px,1.4fr) 62px 58px 58px 54px 54px 66px",padding:"0 16px",borderBottom:"2px solid #333",background:"#0d0d0d",position:"sticky",top:0,zIndex:4}}>
+              <H k="name" align="left">Bank</H>
+              <H k="ndfiTotal">NDFI</H>
+              <H k="ndfiPctLoans">%Loan</H>
+              <H k="ndfiPctTier1">%T1</H>
+              <H k="qoqGrowth">QoQ</H>
+              <H k="delinquency">Dlnq</H>
+              <H k="unfunded">Unfnd</H>
             </div>
-            <div style={{padding:"12px 4px",textAlign:"right",color:"#e0e0e0",fontWeight:700,fontFamily:S.mono,fontSize:13}}>{b.ndfiTotal.toFixed(1)}</div>
-            <div style={{padding:"12px 4px",textAlign:"right",color:b.ndfiPctLoans>15?"#D4A054":"#ccc",fontFamily:S.mono,fontSize:13}}>{fmtPct(b.ndfiPctLoans,1)}</div>
-            <div style={{padding:"12px 4px",textAlign:"right",color:b.ndfiPctTier1>70?"#e05555":b.ndfiPctTier1>50?"#D4A054":"#ccc",fontFamily:S.mono,fontSize:13}}>{fmtPct(b.ndfiPctTier1,1)}</div>
-            <div style={{padding:"12px 4px",textAlign:"right",color:b.qoqGrowth>10&&b.qoqGrowth<=100?"#D4A054":b.qoqGrowth<0?"#5B8C6E":"#ccc",fontFamily:S.mono,fontSize:13}}>{fmtGrowth(b.qoqGrowth)}</div>
-            <div style={{padding:"12px 4px",textAlign:"right",color:b.delinquency>0.15?"#D4A054":"#ccc",fontFamily:S.mono,fontSize:13}}>{fmtPct(b.delinquency)}</div>
-          </div>
-          {expanded===b.id&&(
-            <div style={{background:"#151512",padding:"14px 16px",borderBottom:"1px solid #252520"}}>
-              <div style={{fontSize:15,fontWeight:700,color:"#e0e0e0",marginBottom:4,fontFamily:S.ff}}>{b.name}</div>
-              <div style={{fontSize:13,color:"#D4A054",marginBottom:10,fontFamily:S.mono}}>{b.ticker}</div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12,fontSize:13}}>
-                <div><span style={{color:"#777"}}>Assets:</span> <span style={{color:"#ccc"}}>{fmt(b.totalAssets)}</span></div>
-                <div><span style={{color:"#777"}}>Unfunded:</span> <span style={{color:"#ccc"}}>{fmt(b.unfunded)}</span></div>
-                <div><span style={{color:"#777"}}>Committed:</span> <span style={{color:"#ccc"}}>{fmt(b.ndfiTotal+b.unfunded)}</span></div>
-                <div><span style={{color:"#777"}}>Tier:</span> <span style={{color:"#ccc"}}>{b.tier}</span></div>
-              </div>
-              <div style={{fontSize:12,fontWeight:700,color:"#bbb",marginBottom:8}}>NDFI Subcategories (RC-C Memo 10)</div>
-              {CATEGORIES.map(c=>{const val=b[c.key];const pct=b.ndfiTotal>0?(val/b.ndfiTotal*100):0;return(
-                <div key={c.key} style={{display:"flex",alignItems:"center",marginBottom:5}}>
-                  <div style={{width:10,height:10,borderRadius:2,background:c.color,marginRight:10,flexShrink:0}} />
-                  <div style={{flex:1,color:"#aaa",fontSize:13}}>{c.label}</div>
-                  <div style={{width:72,textAlign:"right",color:"#ccc",fontFamily:S.mono,fontSize:13}}>${val.toFixed(1)}B</div>
-                  <div style={{width:48,textAlign:"right",color:"#888",fontFamily:S.mono,fontSize:13}}>{pct.toFixed(0)}%</div>
+            {sorted.map((b,i)=>(
+              <div key={b.id}>
+                <div onClick={()=>setExpanded(expanded===b.id?null:b.id)} style={{display:"grid",gridTemplateColumns:"minmax(100px,1.4fr) 62px 58px 58px 54px 54px 66px",cursor:"pointer",background:expanded===b.id?"#1a1a16":i%2===0?"#111":"#0d0d0d",padding:"0 16px",borderBottom:"1px solid #1a1a1a",alignItems:"center",minHeight:48}}>
+                  <div style={{padding:"12px 4px 12px 0",color:"#ddd",fontWeight:600,fontFamily:S.ff,fontSize:14,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+                    <span style={{color:"#666",fontSize:10,marginRight:4}}>{expanded===b.id?"▾":"▸"}</span>{b.short}
+                  </div>
+                  <div style={{padding:"12px 4px",textAlign:"right",color:"#e0e0e0",fontWeight:700,fontFamily:S.mono,fontSize:13}}>{b.ndfiTotal.toFixed(1)}</div>
+                  <div style={{padding:"12px 4px",textAlign:"right",color:b.ndfiPctLoans>15?"#D4A054":"#ccc",fontFamily:S.mono,fontSize:13}}>{fmtPct(b.ndfiPctLoans,1)}</div>
+                  <div style={{padding:"12px 4px",textAlign:"right",color:b.ndfiPctTier1>70?"#e05555":b.ndfiPctTier1>50?"#D4A054":"#ccc",fontFamily:S.mono,fontSize:13}}>{fmtPct(b.ndfiPctTier1,1)}</div>
+                  <div style={{padding:"12px 4px",textAlign:"right",color:b.qoqGrowth>10&&b.qoqGrowth<=100?"#D4A054":b.qoqGrowth<0?"#5B8C6E":"#ccc",fontFamily:S.mono,fontSize:13}}>{fmtGrowth(b.qoqGrowth)}</div>
+                  <div style={{padding:"12px 4px",textAlign:"right",color:b.delinquency>0.15?"#D4A054":"#ccc",fontFamily:S.mono,fontSize:13}}>{fmtPct(b.delinquency)}</div>
+                  <div style={{padding:"12px 4px",textAlign:"right",color:"#aaa",fontFamily:S.mono,fontSize:13}}>{b.unfunded?`${b.unfunded.toFixed(1)}`:"—"}</div>
                 </div>
-              );})}
-              {b.note&&<div style={{fontSize:13,color:"#D4A054",fontStyle:"italic",borderTop:"1px solid #252520",paddingTop:10,marginTop:8}}>⚠ {b.note}</div>}
-            </div>
-          )}
+                {expanded===b.id&&(
+                  <div style={{background:"#151512",padding:"14px 16px",borderBottom:"1px solid #252520",minWidth:TABLE_MIN_W}}>
+                    <div style={{fontSize:15,fontWeight:700,color:"#e0e0e0",marginBottom:4,fontFamily:S.ff}}>{b.name}</div>
+                    <div style={{fontSize:13,color:"#D4A054",marginBottom:10,fontFamily:S.mono}}>{b.ticker}</div>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12,fontSize:13}}>
+                      <div><span style={{color:"#777"}}>Assets:</span> <span style={{color:"#ccc"}}>{fmt(b.totalAssets)}</span></div>
+                      <div><span style={{color:"#777"}}>Unfunded:</span> <span style={{color:"#ccc"}}>{fmt(b.unfunded)}</span></div>
+                      <div><span style={{color:"#777"}}>Total Committed:</span> <span style={{color:"#ccc"}}>{fmt(b.ndfiTotal+b.unfunded)}</span></div>
+                      <div><span style={{color:"#777"}}>Tier:</span> <span style={{color:"#ccc"}}>{b.tier}</span></div>
+                    </div>
+                    <div style={{fontSize:12,fontWeight:700,color:"#bbb",marginBottom:8}}>NDFI Subcategories (RC-C Memo 10)</div>
+                    {CATEGORIES.map(c=>{const val=b[c.key];const pct=b.ndfiTotal>0?(val/b.ndfiTotal*100):0;return(
+                      <div key={c.key} style={{display:"flex",alignItems:"center",marginBottom:5}}>
+                        <div style={{width:10,height:10,borderRadius:2,background:c.color,marginRight:10,flexShrink:0}} />
+                        <div style={{flex:1,color:"#aaa",fontSize:13}}>{c.label}</div>
+                        <div style={{width:72,textAlign:"right",color:"#ccc",fontFamily:S.mono,fontSize:13}}>${val.toFixed(1)}B</div>
+                        <div style={{width:48,textAlign:"right",color:"#888",fontFamily:S.mono,fontSize:13}}>{pct.toFixed(0)}%</div>
+                      </div>
+                    );})}
+                    {b.note&&<div style={{fontSize:13,color:"#D4A054",fontStyle:"italic",borderTop:"1px solid #252520",paddingTop:10,marginTop:8}}>⚠ {b.note}</div>}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
-      ))}
+        {/* Right-edge fade gradient scroll affordance */}
+        <div style={{position:"absolute",top:0,right:0,bottom:0,width:48,background:"linear-gradient(to right, transparent, #0d0d0d)",pointerEvents:"none",zIndex:3}} />
+      </div>
     </>
   );
 };
@@ -428,52 +564,175 @@ const GuideView = ({goToTab}) => (
   </>
 );
 
-// ─── TAB: SOURCES ────────────────────────────────────────────────────────────
-const SourcesView = () => (
-  <>
-    <SectionHeader>
-      <h2 style={{fontSize:18,fontWeight:700,color:"#e0e0e0",margin:0,fontFamily:S.ff}}>Regulatory Data Sources</h2>
-      <p style={{fontSize:12,color:"#888",margin:"4px 0 0",fontFamily:S.mono}}>Primary documents and reporting forms</p>
-    </SectionHeader>
-    <div style={{padding:"14px 16px"}}>
-      {SOURCES.map((s,i)=>(
-        <div key={i} style={{marginBottom:22,paddingBottom:18,borderBottom:"1px solid #1a1a1a"}}>
-          <div style={{fontSize:15,fontWeight:700,color:"#ddd",marginBottom:3,fontFamily:S.ff}}>{s.name}</div>
-          <div style={{fontSize:12,color:"#D4A054",marginBottom:8,fontFamily:S.mono}}>{s.schedule}</div>
-          <div style={{fontSize:13,color:"#aaa",lineHeight:1.6,marginBottom:10,fontFamily:S.ff}}>{s.desc}</div>
-          <a href={s.url} target="_blank" rel="noopener noreferrer" style={{fontSize:12,color:"#6AADEE",textDecoration:"none",fontFamily:S.mono}}>→ {s.urlLabel}</a>
+// ─── TAB: LEARN & SOURCES (combined) ─────────────────────────────────────────
+const LEARN_SECTIONS = [
+  {
+    id:"shadow",
+    color:"#6AADEE",
+    heading:"What is shadow banking?",
+    body:"Shadow banking refers to credit intermediation that happens outside the traditional regulated banking system. Non-bank lenders — mortgage companies, private credit funds, consumer finance firms — perform many of the same functions as banks but without deposit insurance, Federal Reserve access, or the same capital requirements. The term 'shadow' refers to the opacity of these activities, not necessarily their legality.",
+    links:[
+      {label:"FSB Global Shadow Banking Report",url:"https://www.fsb.org/2024/12/global-monitoring-report-on-non-bank-financial-intermediation-2024/"},
+      {label:"Federal Reserve: Nonbank Financial Institutions",url:"https://www.federalreserve.gov/releases/z1/"},
+      {label:"IMF: Shadow Banking Around the Globe",url:"https://www.imf.org/external/pubs/ft/sdn/2014/sdn1408.pdf"},
+    ]
+  },
+  {
+    id:"why",
+    color:"#D4A054",
+    heading:"Why does bank-to-NDFI lending matter?",
+    body:"Banks and shadow lenders are deeply interconnected. NDFIs borrow from banks to fund their own lending — creating a chain of leverage that traditional regulatory metrics don't fully capture. When NDFIs run into trouble, the credit lines they drew from banks become losses on bank balance sheets. This was a key transmission mechanism in the 2008 financial crisis, and regulators are watching the same dynamic build again at larger scale.",
+    links:[
+      {label:"OFR Brief 26-02: Measuring Counterparty Exposures",url:"https://www.financialresearch.gov/briefs/2026/03/12/measuring-counterparty-exposures-private-credit/"},
+      {label:"FDIC Banking Issues in Focus (Feb 2026)",url:"https://www.fdic.gov/analysis/bank-lending-nondepository-financial-institutions.pdf"},
+      {label:"BIS Working Paper: Banks and Shadow Banks",url:"https://www.bis.org/publ/work924.htm"},
+    ]
+  },
+  {
+    id:"frameworks",
+    color:"#5B8C6E",
+    heading:"Key regulatory frameworks",
+    body:"Three reporting systems capture different views of the bank-NDFI relationship. FDIC Call Reports (FFIEC 031/041) are public filings by banks showing how much they lend to NDFIs. The Federal Reserve's Form Y-14 is confidential and captures granular counterparty detail for stress testing the largest bank holding companies. SEC Form PF is filed by private fund advisers and shows the fund-side view of borrowing from banks — the mirror image of Call Report data.",
+    links:[
+      {label:"FFIEC Central Data Repository",url:"https://cdr.ffiec.gov/public/"},
+      {label:"FR Y-14Q Form Details",url:"https://www.federalreserve.gov/apps/reportingforms/Report/Index/FR_Y-14Q"},
+      {label:"SEC Form PF Instructions",url:"https://www.sec.gov/divisions/investment/pfrd/pf-instructions.pdf"},
+    ]
+  },
+  {
+    id:"glossary",
+    color:"#A893D4",
+    heading:"Glossary",
+    body:null,
+    glossary:[
+      {term:"NDFI",def:"Non-Depository Financial Institution. Any lender that does not hold federally insured deposits. Includes mortgage companies, private credit funds, consumer finance companies, and others."},
+      {term:"Tier 1 Capital",def:"A bank's highest-quality capital buffer — common equity and retained earnings that can absorb losses before the bank becomes insolvent. Regulators set minimum Tier 1 ratios."},
+      {term:"Unfunded Commitments",def:"Credit lines, revolving facilities, and loan commitments banks have agreed to extend but that haven't been drawn yet. They represent contingent exposure."},
+      {term:"QoQ Growth",def:"Quarter-over-quarter growth. The percentage change in a metric from one quarter to the next. Used here to measure how fast NDFI lending is expanding."},
+      {term:"Delinquency Rate",def:"The percentage of loans that are 30 or more days past due. A low rate today does not guarantee stability tomorrow — NDFI delinquencies can spike suddenly."},
+      {term:"PIK (Payment-in-Kind)",def:"A loan structure where interest is paid by issuing more debt rather than cash. Common in private credit. Can mask deteriorating credit quality in delinquency statistics."},
+      {term:"GSIB",def:"Global Systemically Important Bank. Designation given to the largest banks whose failure would pose risks to the global financial system. Subject to enhanced capital requirements."},
+      {term:"Private Credit",def:"Loans made by non-bank lenders (like private equity funds) directly to companies, often to fund leveraged buyouts. A fast-growing NDFI subcategory."},
+      {term:"CAGR",def:"Compound Annual Growth Rate. The rate at which a quantity would have grown if it grew at a steady rate annually. Useful for comparing growth across different time periods."},
+    ],
+    links:[]
+  },
+  {
+    id:"reading",
+    color:"#999",
+    heading:"Further reading",
+    body:"Books, papers, and journalists covering the intersection of banking, private credit, and systemic risk.",
+    links:[
+      {label:"'Other People's Money' — John Kay",url:"https://www.johnkay.com/other-peoples-money/"},
+      {label:"'The End of Alchemy' — Mervyn King",url:"https://wwnorton.com/books/the-end-of-alchemy/"},
+      {label:"FDIC 2025 Risk Review",url:"https://www.fdic.gov/analysis/2025-risk-review.pdf"},
+      {label:"S&P Global: NDFI Lending Q4 2025",url:"https://www.spglobal.com/market-intelligence/en/news-insights/articles/2026/2/us-banks-ndfi-lending-pace-reaccelerates-in-q4-2025-98612159"},
+    ]
+  },
+];
+
+const LearnView = () => {
+  const [section,setSection] = useState("shadow");
+  return (
+    <>
+      <SectionHeader>
+        <h2 style={{fontSize:18,fontWeight:700,color:"#e0e0e0",margin:0,fontFamily:S.ff}}>Learn & Sources</h2>
+        <p style={{fontSize:12,color:"#888",margin:"4px 0 0",fontFamily:S.mono}}>Context, glossary, resources, and data provenance</p>
+      </SectionHeader>
+      <div style={{padding:"14px 16px"}}>
+
+        {/* Learn sections */}
+        {LEARN_SECTIONS.map(sec=>(
+          <div key={sec.id} style={{marginBottom:16,borderRadius:6,border:`1px solid ${sec.color}33`,overflow:"hidden"}}>
+            <div onClick={()=>setSection(section===sec.id?null:sec.id)} style={{padding:"14px 16px",background:"#111",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{fontSize:14,fontWeight:700,color:sec.color,fontFamily:S.ff}}>{sec.heading}</div>
+              <span style={{color:"#666",fontSize:14}}>{section===sec.id?"▾":"▸"}</span>
+            </div>
+            {section===sec.id&&(
+              <div style={{padding:"0 16px 16px",background:"#0e0e0c"}}>
+                {sec.body&&<div style={{fontSize:13,color:"#bbb",lineHeight:1.75,fontFamily:S.ff,marginBottom:sec.links?.length?14:0,paddingTop:14}}>{sec.body}</div>}
+                {sec.glossary&&(
+                  <div style={{paddingTop:14}}>
+                    {sec.glossary.map(g=>(
+                      <div key={g.term} style={{marginBottom:12,paddingBottom:12,borderBottom:"1px solid #1a1a1a"}}>
+                        <div style={{fontSize:13,fontWeight:700,color:"#A893D4",marginBottom:3,fontFamily:S.mono}}>{g.term}</div>
+                        <div style={{fontSize:13,color:"#aaa",lineHeight:1.65,fontFamily:S.ff}}>{g.def}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {sec.links?.length>0&&(
+                  <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                    {sec.links.map((l,i)=>(
+                      <a key={i} href={l.url} target="_blank" rel="noopener noreferrer" style={{fontSize:12,color:"#6AADEE",textDecoration:"none",fontFamily:S.mono}}>→ {l.label}</a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+
+        {/* News placeholder */}
+        <div style={{marginBottom:16,borderRadius:6,border:"1px solid #333",overflow:"hidden"}}>
+          <div style={{padding:"14px 16px",background:"#111",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div style={{fontSize:14,fontWeight:700,color:"#666",fontFamily:S.ff}}>Live News Feed</div>
+            <span style={{fontSize:10,color:"#555",fontFamily:S.mono,background:"#1a1a1a",padding:"3px 8px",borderRadius:10,border:"1px solid #333"}}>Coming soon</span>
+          </div>
+          <div style={{padding:"14px 16px",background:"#0a0a0a"}}>
+            <div style={{fontSize:13,color:"#555",lineHeight:1.65,fontFamily:S.ff}}>Real-time news on NDFI lending, private credit, and bank regulation will appear here in a future version. Check back after the next tech stack upgrade.</div>
+          </div>
         </div>
-      ))}
-      <div style={{marginTop:16,padding:14,background:"#151512",borderRadius:6,borderLeft:"3px solid #D4A054"}}>
-        <div style={{fontSize:14,fontWeight:700,color:"#D4A054",marginBottom:8,fontFamily:S.ff}}>Data Limitations</div>
-        <div style={{fontSize:13,color:"#aaa",lineHeight:1.7,fontFamily:S.ff}}>
-          • Banks under $10B in assets are not required to report NDFI subcategories<br/>
-          • JPMorgan reported its entire portfolio as "Other," declining subcategory detail<br/>
-          • Call Report data is quarterly; real-time exposure may differ<br/>
-          • Unfunded commitments can be drawn at any time<br/>
-          • OFR's March 2026 brief noted SEC Form PF may understate true exposure<br/>
-          • FR Y-14 data is confidential; published figures are aggregated
+
+        {/* Sources section */}
+        <div style={{borderTop:"2px solid #333",paddingTop:20,marginTop:8}}>
+          <div style={{fontSize:15,fontWeight:700,color:"#e0e0e0",marginBottom:14,fontFamily:S.ff}}>Regulatory Data Sources</div>
+          {SOURCES.map((s,i)=>(
+            <div key={i} style={{marginBottom:22,paddingBottom:18,borderBottom:"1px solid #1a1a1a"}}>
+              <div style={{fontSize:14,fontWeight:700,color:"#ddd",marginBottom:3,fontFamily:S.ff}}>{s.name}</div>
+              <div style={{fontSize:12,color:"#D4A054",marginBottom:8,fontFamily:S.mono}}>{s.schedule}</div>
+              <div style={{fontSize:13,color:"#aaa",lineHeight:1.6,marginBottom:10,fontFamily:S.ff}}>{s.desc}</div>
+              <a href={s.url} target="_blank" rel="noopener noreferrer" style={{fontSize:12,color:"#6AADEE",textDecoration:"none",fontFamily:S.mono}}>→ {s.urlLabel}</a>
+            </div>
+          ))}
+          <div style={{padding:14,background:"#151512",borderRadius:6,borderLeft:"3px solid #D4A054",marginBottom:16}}>
+            <div style={{fontSize:14,fontWeight:700,color:"#D4A054",marginBottom:8,fontFamily:S.ff}}>Data Limitations</div>
+            <div style={{fontSize:13,color:"#aaa",lineHeight:1.7,fontFamily:S.ff}}>
+              • Banks under $10B in assets are not required to report NDFI subcategories<br/>
+              • JPMorgan reported its entire portfolio as "Other," declining subcategory detail<br/>
+              • Call Report data is quarterly; real-time exposure may differ<br/>
+              • Unfunded commitments can be drawn at any time<br/>
+              • OFR's March 2026 brief noted SEC Form PF may understate true exposure<br/>
+              • FR Y-14 data is confidential; published figures are aggregated
+            </div>
+          </div>
+          <div style={{padding:14,background:"#111518",borderRadius:6,borderLeft:"3px solid #6AADEE",marginBottom:16}}>
+            <div style={{fontSize:14,fontWeight:700,color:"#6AADEE",marginBottom:8,fontFamily:S.ff}}>How the Reporting Framework Connects</div>
+            <div style={{fontSize:13,color:"#aaa",lineHeight:1.7,fontFamily:S.ff}}>
+              <strong style={{color:"#ccc"}}>Call Reports (FFIEC 031/041/051)</strong> → Public. Bank-side. How much banks lend to NDFIs. Filed quarterly.<br/><br/>
+              <strong style={{color:"#ccc"}}>FR Y-14</strong> → Confidential. Bank-side. Filed by ~35 largest BHCs. Granular counterparty detail for stress testing.<br/><br/>
+              <strong style={{color:"#ccc"}}>SEC Form PF</strong> → Confidential. Fund-side. How much funds borrow from banks. The mirror image of Call Report data.
+            </div>
+          </div>
+          <div style={{padding:16,background:"#151512",borderRadius:6,borderLeft:"3px solid #D4A054"}}>
+            <div style={{fontSize:14,fontWeight:700,color:"#D4A054",marginBottom:8,fontFamily:S.ff}}>Data Audit</div>
+            <div style={{fontSize:13,color:"#aaa",lineHeight:1.6,marginBottom:12,fontFamily:S.ff}}>
+              Every data point has been classified as Direct (sourced with citation), Estimated (derived from direct data), or Approximate (rough estimate needing verification). Download the full audit spreadsheet.
+            </div>
+            <a href="/NDFI_Tracker_Data_Audit.xlsx" download style={{display:"inline-flex",alignItems:"center",gap:8,padding:"10px 20px",background:"#2a2218",border:"1px solid #D4A054",color:"#D4A054",borderRadius:6,textDecoration:"none",fontFamily:S.ff,fontWeight:700,fontSize:14,cursor:"pointer"}}>
+              <span style={{fontSize:18,lineHeight:1}}>📊</span> Download Data Audit (.xlsx)
+            </a>
+          </div>
         </div>
       </div>
-      <div style={{marginTop:16,padding:14,background:"#111518",borderRadius:6,borderLeft:"3px solid #6AADEE"}}>
-        <div style={{fontSize:14,fontWeight:700,color:"#6AADEE",marginBottom:8,fontFamily:S.ff}}>How the Reporting Framework Connects</div>
-        <div style={{fontSize:13,color:"#aaa",lineHeight:1.7,fontFamily:S.ff}}>
-          <strong style={{color:"#ccc"}}>Call Reports (FFIEC 031/041/051)</strong> → Public. Bank-side. How much banks lend to NDFIs. Filed quarterly.<br/><br/>
-          <strong style={{color:"#ccc"}}>FR Y-14</strong> → Confidential. Bank-side. Filed by ~35 largest BHCs. Granular counterparty detail for stress testing.<br/><br/>
-          <strong style={{color:"#ccc"}}>SEC Form PF</strong> → Confidential. Fund-side. How much funds borrow from banks. The mirror image of Call Report data.
-        </div>
-      </div>
-    </div>
-  </>
-);
+    </>
+  );
+};
 
 // ─── MAIN APP ────────────────────────────────────────────────────────────────
-// Architecture: fixed-position banner at top, fixed-position nav at bottom.
-// The content area is a naturally scrolling div between them, with padding
-// to account for the fixed elements. This works reliably on all mobile
-// browsers including iOS Safari with its dynamic address bar.
 export default function App() {
   const [tab,setTab] = useState("overview");
+  const [titleSheet,setTitleSheet] = useState(false);
 
   const renderTab = () => {
     switch(tab) {
@@ -483,7 +742,7 @@ export default function App() {
       case "mix": return <MixView />;
       case "risk": return <RiskView goToTab={setTab} />;
       case "guide": return <GuideView goToTab={setTab} />;
-      case "sources": return <SourcesView />;
+      case "learn": return <LearnView />;
       default: return null;
     }
   };
@@ -493,11 +752,16 @@ export default function App() {
       <GlobalStyle />
       <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
+      {titleSheet&&<BottomSheet content={TITLE_EDUCATION} onClose={()=>setTitleSheet(false)} />}
+
       {/* FIXED TOP BANNER */}
       <header style={{position:"fixed",top:0,left:0,right:0,zIndex:50,background:"#0a0a0a",borderBottom:"1px solid #222",maxWidth:768,margin:"0 auto"}}>
-        <div style={{padding:"12px 16px 10px",display:"flex",alignItems:"baseline",gap:8}}>
-          <h1 style={{fontSize:17,fontWeight:700,margin:0,color:"#e0e0e0",fontFamily:S.ff,letterSpacing:"-0.02em"}}>NDFI Exposure Tracker</h1>
-          <span style={{fontSize:10,color:"#666",fontFamily:S.mono}}>v1.4.5</span>
+        <div onClick={()=>setTitleSheet(true)} style={{padding:"10px 16px 8px",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
+          <div style={{display:"flex",alignItems:"baseline",gap:8}}>
+            <h1 style={{fontSize:17,fontWeight:700,margin:0,color:"#e0e0e0",fontFamily:S.ff,letterSpacing:"-0.02em"}}>NDFI Exposure Tracker</h1>
+            <span style={{fontSize:10,color:"#666",fontFamily:S.mono}}>v1.5.0</span>
+          </div>
+          <p style={{margin:"2px 0 0",fontSize:11,color:"#777",fontFamily:S.ff,fontStyle:"italic",letterSpacing:"0.01em"}}>Tracking U.S. commercial bank lending to non-bank financial institutions&nbsp;<span style={{color:"#D4A054",fontStyle:"normal",fontSize:12}}>ⓘ</span></p>
         </div>
       </header>
 
