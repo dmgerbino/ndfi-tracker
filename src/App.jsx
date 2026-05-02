@@ -1,6 +1,9 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Line, ReferenceLine, ComposedChart } from "recharts";
 
+// ─── LOGO SVG (icon mark, wordmark cropped) ───────────────────────────────────
+const LOGO_SVG = `<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="52px" height="52px" viewBox="80 90 625 490" enable-background="new 0 0 784 784" xml:space="preserve"><path fill="#000000" opacity="1.000000" stroke="none" d="M444.000000,785.000000 C296.000000,785.000000 148.500000,785.000000 1.000000,785.000000 C1.000000,523.666687 1.000000,262.333344 1.000000,1.000000 C262.333344,1.000000 523.666687,1.000000 785.000000,1.000000 C785.000000,262.333344 785.000000,523.666687 785.000000,785.000000 C671.500000,785.000000 558.000000,785.000000 444.000000,785.000000z"/><path fill="#43ECE6" opacity="1.000000" stroke="none" d="M175.843277,509.407959 C170.206284,504.653259 169.685867,497.751587 174.771988,491.903961 C189.194412,475.322083 203.722183,458.831909 218.173965,442.275543 C249.048141,406.905212 279.905029,371.519806 310.756073,336.129333 C314.477661,331.860168 317.910736,326.720001 324.564209,328.070953 C327.734039,328.714569 331.415100,330.183716 333.462280,332.511932 C364.466888,367.772919 395.224396,403.251068 426.069550,438.652405 C447.181152,462.882385 468.328369,487.081421 489.508545,511.251465 C490.524231,512.410583 492.013123,513.154968 493.281677,514.092529 C508.356842,514.161499 522.707458,514.082092 537.058105,514.002625 C538.082275,493.177765 538.229553,472.356812 538.246338,451.535736 C538.283508,405.379944 538.230042,359.224030 538.332825,313.068451 C538.337646,310.900024 538.926758,308.288452 540.214355,306.642670 C546.464661,298.653839 553.032349,290.912567 559.531616,283.120361 C560.199402,282.319763 561.159668,281.763153 562.889771,280.357666 C562.889771,284.469391 562.889709,287.568176 562.889771,290.666962 C562.891418,368.649506 562.919128,446.632111 562.795715,524.614441 C562.791016,527.610962 561.331909,530.605042 560.550537,533.600281 C559.769104,534.261353 559.622437,534.550598 559.475769,534.839844 C558.978516,534.955444 558.997559,535.002441 558.997559,535.002441 C558.932129,535.329407 558.770996,535.595764 558.469482,535.777161 C557.986450,535.799805 557.760254,536.096802 557.760254,536.096802 C555.250183,536.740845 553.117310,537.914551 550.976074,537.929871 C532.350403,538.063477 513.722900,538.044189 495.096893,537.920898 C492.150543,537.901367 489.209106,537.133972 486.265411,536.712341 C479.019287,534.885925 473.948914,530.929810 469.612030,525.994873 C453.016418,507.110687 436.498840,488.157898 419.969910,469.215210 C400.048126,446.384308 380.140259,423.541229 360.234619,400.696259 C349.845764,388.773376 339.482574,376.828156 329.087646,364.910614 C327.341797,362.909058 325.493195,360.997162 323.528687,358.866669 C312.635895,371.324188 301.926880,383.612396 291.173492,395.861633 C263.604462,427.265594 236.011093,458.648163 208.439011,490.049438 C203.385513,495.804718 198.339844,501.568176 193.375076,507.399841 C188.526749,513.094727 181.261429,513.978088 175.843277,509.407959z"/><path fill="#E5BB65" opacity="1.000000" stroke="none" d="M399.980652,504.548035 C399.994202,503.424622 399.998352,502.762207 399.997253,502.099792 C399.986023,495.247284 399.982239,495.294281 393.332825,494.792633 C392.233185,494.709686 391.190826,493.980469 390.103424,493.603516 C381.230591,490.527954 380.011902,491.365204 379.999359,500.520966 C379.998230,501.348938 380.011230,502.176910 380.430176,503.005676 C387.218048,503.674011 393.593414,504.341522 399.980652,504.548035z"/></svg>`;
+
 // ─── GLOBAL STYLE INJECTION ──────────────────────────────────────────────────
 // Injected once to kill any default body/html styling from Vite or the host.
 const GlobalStyle = () => {
@@ -18,6 +21,66 @@ const GlobalStyle = () => {
       a { color: inherit; }
     `;
     document.head.appendChild(style);
+  }, []);
+  return null;
+};
+
+// ─── PWA HEAD TAGS ────────────────────────────────────────────────────────────
+// Injects all favicon + PWA meta tags into <head> at runtime.
+const PwaHead = () => {
+  useEffect(() => {
+    const tags = [
+      // Core favicons
+      { rel:"icon", type:"image/x-icon",        href:"/favicon.ico" },
+      { rel:"icon", type:"image/svg+xml",        href:"/favicon.svg" },
+      { rel:"icon", type:"image/png", sizes:"16x16", href:"/favicon-16x16.png" },
+      { rel:"icon", type:"image/png", sizes:"32x32", href:"/favicon-32x32.png" },
+      { rel:"icon", type:"image/png", sizes:"48x48", href:"/favicon-48x48.png" },
+      // Apple
+      { rel:"apple-touch-icon", sizes:"180x180", href:"/apple-touch-icon.png" },
+      // Safari pinned tab
+      { rel:"mask-icon", href:"/safari-pinned-tab.svg", color:"#43ECE6" },
+      // PWA manifest
+      { rel:"manifest", href:"/site.webmanifest" },
+    ];
+    const metas = [
+      { name:"theme-color",           content:"#0a0a0a" },
+      { name:"msapplication-TileColor", content:"#0a0a0a" },
+      { name:"msapplication-config",  content:"/browserconfig.xml" },
+      { name:"apple-mobile-web-app-capable", content:"yes" },
+      { name:"apple-mobile-web-app-status-bar-style", content:"black-translucent" },
+      { name:"apple-mobile-web-app-title", content:"NDFI Tracker" },
+      { name:"application-name",      content:"NDFI Tracker" },
+      // OG / social
+      { property:"og:title",          content:"NDFI Exposure Tracker" },
+      { property:"og:description",    content:"Tracking U.S. commercial bank lending to non-bank financial institutions" },
+      { property:"og:image",          content:"/icon-512x512.png" },
+      { property:"og:url",            content:"https://ndfi-tracker.com" },
+      { property:"og:type",           content:"website" },
+      { name:"twitter:card",          content:"summary" },
+      { name:"twitter:title",         content:"NDFI Exposure Tracker" },
+      { name:"twitter:description",   content:"Tracking U.S. commercial bank lending to non-bank financial institutions" },
+      { name:"twitter:image",         content:"/icon-512x512.png" },
+    ];
+    // Inject link tags
+    tags.forEach(attrs => {
+      const existing = document.querySelector(`link[href="${attrs.href}"]`);
+      if (existing) return;
+      const el = document.createElement("link");
+      Object.entries(attrs).forEach(([k,v]) => el.setAttribute(k, v));
+      document.head.appendChild(el);
+    });
+    // Inject meta tags
+    metas.forEach(attrs => {
+      const key = attrs.name ? `name="${attrs.name}"` : `property="${attrs.property}"`;
+      const existing = document.querySelector(`meta[${key}]`);
+      if (existing) return;
+      const el = document.createElement("meta");
+      Object.entries(attrs).forEach(([k,v]) => el.setAttribute(k, v));
+      document.head.appendChild(el);
+    });
+    // Page title
+    document.title = "NDFI Exposure Tracker";
   }, []);
   return null;
 };
@@ -750,18 +813,22 @@ export default function App() {
   return (
     <div style={{width:"100%",maxWidth:768,margin:"0 auto",background:"#0d0d0d",minHeight:"100vh"}}>
       <GlobalStyle />
+      <PwaHead />
       <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
       {titleSheet&&<BottomSheet content={TITLE_EDUCATION} onClose={()=>setTitleSheet(false)} />}
 
       {/* FIXED TOP BANNER */}
       <header style={{position:"fixed",top:0,left:0,right:0,zIndex:50,background:"#0a0a0a",borderBottom:"1px solid #222",maxWidth:768,margin:"0 auto"}}>
-        <div onClick={()=>setTitleSheet(true)} style={{padding:"10px 16px 8px",cursor:"pointer",WebkitTapHighlightColor:"transparent"}}>
-          <div style={{display:"flex",alignItems:"baseline",gap:8}}>
-            <h1 style={{fontSize:17,fontWeight:700,margin:0,color:"#e0e0e0",fontFamily:S.ff,letterSpacing:"-0.02em"}}>NDFI Exposure Tracker</h1>
-            <span style={{fontSize:10,color:"#666",fontFamily:S.mono}}>v1.5.0</span>
+        <div onClick={()=>setTitleSheet(true)} style={{padding:"8px 14px 8px",cursor:"pointer",WebkitTapHighlightColor:"transparent",display:"flex",alignItems:"center",gap:11}}>
+          <div style={{width:52,height:52,flexShrink:0}} dangerouslySetInnerHTML={{__html:LOGO_SVG}} />
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{display:"flex",alignItems:"baseline",gap:8}}>
+              <h1 style={{fontSize:16,fontWeight:700,margin:0,color:"#e0e0e0",fontFamily:S.ff,letterSpacing:"-0.02em",whiteSpace:"nowrap"}}>NDFI Exposure Tracker</h1>
+              <span style={{fontSize:10,color:"#555",fontFamily:S.mono,whiteSpace:"nowrap"}}>v1.5.1</span>
+            </div>
+            <p style={{margin:"2px 0 0",fontSize:10,color:"#666",fontFamily:S.ff,fontStyle:"italic",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>Tracking U.S. commercial bank lending to non-bank financial institutions&nbsp;<span style={{color:"#D4A054",fontStyle:"normal"}}>ⓘ</span></p>
           </div>
-          <p style={{margin:"2px 0 0",fontSize:11,color:"#777",fontFamily:S.ff,fontStyle:"italic",letterSpacing:"0.01em"}}>Tracking U.S. commercial bank lending to non-bank financial institutions&nbsp;<span style={{color:"#D4A054",fontStyle:"normal",fontSize:12}}>ⓘ</span></p>
         </div>
       </header>
 
