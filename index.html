@@ -1,10 +1,76 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ndfi-tracker</title>
+
+    <!-- ─── PRIMARY META ──────────────────────────────────────────────────── -->
+    <title>NDFI Exposure Tracker — Tracking U.S. Bank Lending to Non-Bank Financial Institutions</title>
+    <meta name="description" content="Tracking U.S. commercial bank lending to non-bank financial institutions. $1.57T in exposure across 21 banks. Q4 2025 Call Report data." />
+    <meta name="author" content="NDFI Tracker" />
+    <meta name="robots" content="index, follow" />
+    <meta name="color-scheme" content="dark" />
+
+    <!-- ─── CANONICAL ────────────────────────────────────────────────────── -->
+    <link rel="canonical" href="https://ndfi-tracker.com" />
+
+    <!-- ─── OPEN GRAPH (Facebook, LinkedIn, Slack, iMessage, etc.) ───────── -->
+    <meta property="og:type"              content="website" />
+    <meta property="og:url"               content="https://ndfi-tracker.com" />
+    <meta property="og:site_name"         content="NDFI Exposure Tracker" />
+    <meta property="og:title"             content="NDFI Exposure Tracker" />
+    <meta property="og:description"       content="Tracking U.S. commercial bank lending to non-bank financial institutions. $1.57T in exposure across 21 banks. Q4 2025 Call Report data." />
+    <meta property="og:locale"            content="en_US" />
+    <!-- OG Image — 1200×630px JPEG, <8MB, served over HTTPS -->
+    <meta property="og:image"             content="https://ndfi-tracker.com/og-image.jpg" />
+    <meta property="og:image:secure_url"  content="https://ndfi-tracker.com/og-image.jpg" />
+    <meta property="og:image:type"        content="image/jpeg" />
+    <meta property="og:image:width"       content="1200" />
+    <meta property="og:image:height"      content="630" />
+    <meta property="og:image:alt"         content="NDFI Exposure Tracker — $1.57T in U.S. bank lending to non-bank financial institutions, 21.9% CAGR since Q1 2010" />
+
+    <!-- ─── TWITTER CARD ─────────────────────────────────────────────────── -->
+    <meta name="twitter:card"             content="summary_large_image" />
+    <meta name="twitter:site"             content="@ndfitracker" />
+    <meta name="twitter:title"            content="NDFI Exposure Tracker" />
+    <meta name="twitter:description"      content="Tracking U.S. commercial bank lending to non-bank financial institutions. $1.57T in exposure across 21 banks. Q4 2025 Call Report data." />
+    <meta name="twitter:image"            content="https://ndfi-tracker.com/og-image.jpg" />
+    <meta name="twitter:image:alt"        content="NDFI Exposure Tracker — $1.57T in U.S. bank lending to non-bank financial institutions" />
+
+    <!-- ─── PWA / THEME ──────────────────────────────────────────────────── -->
+    <meta name="theme-color"              content="#0a0a0a" />
+    <meta name="application-name"         content="NDFI Tracker" />
+
+    <!-- ─── APPLE / IOS ──────────────────────────────────────────────────── -->
+    <meta name="apple-mobile-web-app-capable"          content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title"            content="NDFI Tracker" />
+
+    <!-- ─── WINDOWS / MICROSOFT ──────────────────────────────────────────── -->
+    <meta name="msapplication-TileColor"  content="#0a0a0a" />
+    <meta name="msapplication-config"     content="/browserconfig.xml" />
+
+    <!-- ─── FAVICONS ─────────────────────────────────────────────────────── -->
+    <!-- ICO — legacy browsers, must be first -->
+    <link rel="icon"              href="/favicon.ico" sizes="48x48" />
+    <!-- SVG — modern browsers, scales perfectly at any size -->
+    <link rel="icon"              href="/favicon.svg" type="image/svg+xml" />
+    <!-- PNG fallbacks -->
+    <link rel="icon"              href="/favicon-16x16.png" type="image/png" sizes="16x16" />
+    <link rel="icon"              href="/favicon-32x32.png" type="image/png" sizes="32x32" />
+    <link rel="icon"              href="/favicon-48x48.png" type="image/png" sizes="48x48" />
+    <!-- Apple touch icon — iOS home screen -->
+    <link rel="apple-touch-icon"  href="/apple-touch-icon.png" sizes="180x180" />
+    <!-- Safari pinned tab — monochrome SVG -->
+    <link rel="mask-icon"         href="/safari-pinned-tab.svg" color="#43ECE6" />
+
+    <!-- ─── PWA MANIFEST ─────────────────────────────────────────────────── -->
+    <link rel="manifest"          href="/site.webmanifest" />
+
+    <!-- ─── FONTS ────────────────────────────────────────────────────────── -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
   </head>
   <body>
     <div id="root"></div>
