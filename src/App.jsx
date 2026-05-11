@@ -23,6 +23,7 @@ const GLOBAL_CSS = `
     --c-warning:#F5A623; --c-warning-lt:#120A00;
     --c-error:#FF6B6B; --c-error-lt:#130404;
     --c-chart-bar:#5B9BD5; --c-chart-bar2:#1F2D3D; --c-toggle-knob:#F0EDEA;
+    --c-bullet-poor:#3A3A3A; --c-bullet-mid:#252525; --c-bullet-good:#181818;
   }
   [data-theme="light"] {
     --c-base:#F7F6F3; --c-surface:#FFFFFF; --c-surface-2:#EFEEE9; --c-border:#E2DFD8;
@@ -33,6 +34,7 @@ const GLOBAL_CSS = `
     --c-warning:#7A4F00; --c-warning-lt:#FFF4DC;
     --c-error:#B91C1C; --c-error-lt:#FEE2E2;
     --c-chart-bar:#2C4A6E; --c-chart-bar2:#C5D8EE; --c-toggle-knob:#FFFFFF;
+    --c-bullet-poor:#BBBBBB; --c-bullet-mid:#D8D8D8; --c-bullet-good:#EFEFEF;
   }
   html,body,#root { background:var(--c-base); color:var(--c-text); min-height:100%; width:100%;
     font-family:var(--ff-sans); font-size:var(--text-base); -webkit-font-smoothing:antialiased; }
@@ -76,6 +78,7 @@ const C = {
   warning:"var(--c-warning)",warningLt:"var(--c-warning-lt)",
   error:"var(--c-error)",errorLt:"var(--c-error-lt)",
   chartBar:"var(--c-chart-bar)",chartBar2:"var(--c-chart-bar2)",
+  bulletPoor:"var(--c-bullet-poor)",bulletMid:"var(--c-bullet-mid)",bulletGood:"var(--c-bullet-good)",
 };
 // Typography — 0.875rem (14px) is the absolute floor, never go below
 const T = {
@@ -347,7 +350,6 @@ const TABS = [
 // Layout — multiples of 8px
 const BANNER_H  = 72; // 9×8
 const NAV_H     = 56; // 7×8
-const SECTION_H = 88; // approx height of a 2-line SectionHeader (h2 + subtitle + padding)
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 const fmt       = (n,d=1)  => n>=1000?`$${(n/1000).toFixed(d)}T`:`$${n.toFixed(d)}B`;
@@ -368,28 +370,39 @@ const CustomTooltip = ({active,payload,label}) => {
 
 // ─── SHARED: BULLET CHART ─────────────────────────────────────────────────────
 // Zones communicated by coloured bands AND text labels — never colour alone.
+// BulletChart — Stephen Few specification compliant
+// Ranges: single hue, dark=poor → light=good (no distinct hues, accessible to colourblind users)
+// Featured bar: ~1/3 container height per spec
+// Comparative marker: short perpendicular line, less dominant than bar
 const BulletChart = ({value,target,ranges,label,unit=""}) => {
   const max=ranges[2]; const cv=Math.min(value,max);
+  const containerH = 24;
+  const barH       = 8;  // ~1/3 of container per Few spec
+  const barTop      = (containerH - barH) / 2;
   return (
     <div style={{marginBottom:SP[2]}}>
       <div style={{display:"flex",justifyContent:"space-between",marginBottom:SP[1]}}>
         <span style={{fontSize:T.sm,color:C.muted,fontFamily:T.sans}}>{label}</span>
         <span style={{fontSize:T.sm,color:C.text,fontWeight:600,fontFamily:T.mono}}>{value>100?"N/M":`${value}${unit}`}</span>
       </div>
-      <div style={{position:"relative",height:24,background:C.surface2,borderRadius:4,overflow:"hidden",border:`1px solid ${C.border}`}}>
-        <div style={{position:"absolute",left:0,top:0,height:"100%",width:`${(ranges[0]/max)*100}%`,background:C.successLt}} />
-        <div style={{position:"absolute",left:`${(ranges[0]/max)*100}%`,top:0,height:"100%",width:`${((ranges[1]-ranges[0])/max)*100}%`,background:C.warningLt}} />
-        <div style={{position:"absolute",left:`${(ranges[1]/max)*100}%`,top:0,height:"100%",width:`${((ranges[2]-ranges[1])/max)*100}%`,background:C.errorLt}} />
-        {value<=100&&<div style={{position:"absolute",left:0,top:7,height:10,width:`${(cv/max)*100}%`,background:C.chartBar,borderRadius:2}} />}
-        {target!=null&&<div style={{position:"absolute",left:`${(Math.min(target,max)/max)*100}%`,top:1,width:3,height:22,background:C.text,borderRadius:1}} />}
+      {/* Track — no border per spec; ranges are single-hue intensities */}
+      <div style={{position:"relative",height:containerH,borderRadius:3,overflow:"hidden"}}>
+        {/* Qualitative ranges: dark (poor) → mid → light (good) */}
+        <div style={{position:"absolute",left:0,top:0,height:"100%",width:`${(ranges[0]/max)*100}%`,background:C.bulletPoor}} />
+        <div style={{position:"absolute",left:`${(ranges[0]/max)*100}%`,top:0,height:"100%",width:`${((ranges[1]-ranges[0])/max)*100}%`,background:C.bulletMid}} />
+        <div style={{position:"absolute",left:`${(ranges[1]/max)*100}%`,top:0,height:"100%",width:`${((ranges[2]-ranges[1])/max)*100}%`,background:C.bulletGood}} />
+        {/* Featured measure bar — ~1/3 height, centered vertically */}
+        {value<=100&&<div style={{position:"absolute",left:0,top:barTop,height:barH,width:`${(cv/max)*100}%`,background:C.chartBar,borderRadius:1}} />}
+        {/* Comparative measure — short perpendicular line, less dominant than bar */}
+        {target!=null&&<div style={{position:"absolute",left:`${(Math.min(target,max)/max)*100}%`,top:3,width:2,height:containerH-6,background:C.text,opacity:0.7,borderRadius:1}} />}
       </div>
     </div>
   );
 };
 
 // ─── SHARED: SECTION HEADER (no box-shadow — border provides depth in dark mode)
-const SectionHeader = ({children}) => (
-  <div style={{position:"sticky",top:BANNER_H,zIndex:5,background:C.base,borderBottom:`1px solid ${C.border}`,padding:`${SP[2]} ${SP[2]} ${SP[1]}`}}>
+const SectionHeader = ({children, sectionRef}) => (
+  <div ref={sectionRef} style={{position:"sticky",top:BANNER_H,zIndex:5,background:C.base,borderBottom:`1px solid ${C.border}`,padding:`${SP[2]} ${SP[2]} ${SP[1]}`}}>
     {children}
   </div>
 );
@@ -537,8 +550,38 @@ const DataTable = () => {
   const [sortDir,setSortDir] = useState("desc");
   const [expanded,setExpanded] = useState(null);
   const [colTip,setColTip] = useState(null);
-  const headerRef = useRef(null);
-  const bodyRef   = useRef(null);
+  const headerRef    = useRef(null);
+  const bodyRef      = useRef(null);
+  const sectionRef   = useRef(null);
+  const colHeaderRef = useRef(null);
+  const [colTop,     setColTop]     = useState(BANNER_H + 88);
+  const [colHeadH,   setColHeadH]   = useState(48);
+
+  // Measure SectionHeader height — updates colTop dynamically for any screen size
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        setColTop(BANNER_H + Math.ceil(entry.contentRect.height));
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Measure col header height — keeps body paddingTop exact
+  useEffect(() => {
+    const el = colHeaderRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        setColHeadH(Math.ceil(entry.contentRect.height));
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   // Sync horizontal scroll: body drives header
   useEffect(() => {
@@ -586,17 +629,17 @@ const DataTable = () => {
         </div>
       )}
 
-      <SectionHeader>
+      <SectionHeader sectionRef={sectionRef}>
         <h2 style={{fontSize:T.h2,fontWeight:700,color:C.text,margin:0,fontFamily:T.sans}}>Bank-Level NDFI Exposure</h2>
         <p style={{fontSize:T.sm,color:C.muted,margin:`${SP[1]} 0 0`,fontFamily:T.mono}}>
           Q4 2025 · Tap row to expand · <span style={{color:C.accent}}>Swipe right for more →</span>
         </p>
       </SectionHeader>
 
-      {/* ── Header: sticky vertically, synced horizontally to body scroll via JS ── */}
-      <div style={{position:"sticky",top:BANNER_H+SECTION_H,zIndex:4,background:C.base,
-        borderBottom:`2px solid ${C.border}`}}>
-        <div ref={headerRef} style={{overflowX:"hidden",WebkitOverflowScrolling:"touch"}}>
+      {/* ── Header: fixed to viewport, synced horizontally to body scroll via JS ── */}
+      <div ref={colHeaderRef} style={{position:"fixed",top:colTop,left:0,right:0,zIndex:4,background:C.base,
+        borderBottom:`2px solid ${C.border}`,maxWidth:768,margin:"0 auto"}}>
+        <div ref={headerRef} style={{overflowX:"hidden",overflowY:"visible"}}>
           <div style={{display:"grid",gridTemplateColumns:"minmax(80px,1fr) 68px 58px 58px 56px 52px 68px",
             minWidth:TABLE_MIN_W,padding:`0 ${SP[2]}`}}>
             <ColHead k="name" align="left">Bank</ColHead>
@@ -611,7 +654,8 @@ const DataTable = () => {
       </div>
 
       {/* ── Body container: scrollable, drives the header via JS sync ── */}
-      <div style={{position:"relative"}}>
+      {/* paddingTop compensates for the fixed col header row height */}
+      <div style={{position:"relative",paddingTop:colHeadH}}>
         <div ref={bodyRef} style={{overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
           <div style={{minWidth:TABLE_MIN_W}}>
             {sorted.map((b,i)=>(
