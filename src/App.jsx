@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Line, ReferenceLine, ComposedChart } from "recharts";
 
 // LOGO_SVG preserved verbatim from original
@@ -537,6 +537,7 @@ const DataTable = () => {
   const [sortDir,setSortDir] = useState("desc");
   const [expanded,setExpanded] = useState(null);
   const [colTip,setColTip] = useState(null);
+  const scrollRef = useRef(null);
   const sorted = useMemo(()=>[...BANKS].sort((a,b)=>sortDir==="desc"?b[sortKey]-a[sortKey]:a[sortKey]-b[sortKey]),[sortKey,sortDir]);
   const toggleSort = (k) => { if(sortKey===k) setSortDir(d=>d==="desc"?"asc":"desc"); else{setSortKey(k);setSortDir("desc");} };
 
@@ -580,23 +581,24 @@ const DataTable = () => {
         </p>
       </SectionHeader>
 
-      {/* Col headers: outside overflow container so they stick to page scroll */}
-      <div style={{position:"sticky",top:BANNER_H+SECTION_H,zIndex:4,background:C.base,borderBottom:`2px solid ${C.border}`,overflowX:"hidden"}}>
-        <div style={{display:"grid",gridTemplateColumns:"minmax(80px,1fr) 68px 58px 58px 56px 52px 68px",
-          minWidth:TABLE_MIN_W,padding:`0 ${SP[2]}`}}>
-          <ColHead k="name" align="left">Bank</ColHead>
-          <ColHead k="ndfiTotal">NDFI</ColHead>
-          <ColHead k="ndfiPctLoans">%Loan</ColHead>
-          <ColHead k="ndfiPctTier1">%T1</ColHead>
-          <ColHead k="qoqGrowth">QoQ</ColHead>
-          <ColHead k="delinquency">Dlnq</ColHead>
-          <ColHead k="unfunded">Unfnd</ColHead>
-        </div>
-      </div>
-
-      <div style={{position:"relative"}}>
-        <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
+      {/* Single shared scroll container — header row at top, data rows below.
+         Both scroll horizontally together. The sticky wrapper handles vertical sticking. */}
+      {/* Single scroll container — header row and data rows scroll horizontally together */}
+      <div ref={scrollRef} style={{overflowX:"auto",WebkitOverflowScrolling:"touch"}}>
           <div style={{minWidth:TABLE_MIN_W}}>
+            {/* Col header — sticks vertically at BANNER_H+SECTION_H, scrolls horizontally with data */}
+            <div style={{position:"sticky",top:BANNER_H+SECTION_H,zIndex:4,background:C.base,borderBottom:`2px solid ${C.border}`}}>
+              <div style={{display:"grid",gridTemplateColumns:"minmax(80px,1fr) 68px 58px 58px 56px 52px 68px",
+                padding:`0 ${SP[2]}`}}>
+                <ColHead k="name" align="left">Bank</ColHead>
+                <ColHead k="ndfiTotal">NDFI</ColHead>
+                <ColHead k="ndfiPctLoans">%Loan</ColHead>
+                <ColHead k="ndfiPctTier1">%T1</ColHead>
+                <ColHead k="qoqGrowth">QoQ</ColHead>
+                <ColHead k="delinquency">Dlnq</ColHead>
+                <ColHead k="unfunded">Unfnd</ColHead>
+              </div>
+            </div>
             {sorted.map((b,i)=>(
               <div key={b.id}>
                 <button onClick={()=>setExpanded(expanded===b.id?null:b.id)}
