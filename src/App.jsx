@@ -23,7 +23,8 @@ const GLOBAL_CSS = `
     --c-warning:#F5A623; --c-warning-lt:#120A00;
     --c-error:#FF6B6B; --c-error-lt:#130404;
     --c-chart-bar:#5B9BD5; --c-chart-bar2:#1F2D3D; --c-toggle-knob:#F0EDEA;
-    --c-bullet-poor:#3A3A3A; --c-bullet-mid:#252525; --c-bullet-good:#181818;
+    --c-bullet-poor:#404040; --c-bullet-mid:#282828; --c-bullet-good:#1E1E1E;
+    --c-bullet-border:#2A2A2A; --c-bullet-bar:#7DB5E5;
   }
   [data-theme="light"] {
     --c-base:#F7F6F3; --c-surface:#FFFFFF; --c-surface-2:#EFEEE9; --c-border:#E2DFD8;
@@ -34,7 +35,8 @@ const GLOBAL_CSS = `
     --c-warning:#7A4F00; --c-warning-lt:#FFF4DC;
     --c-error:#B91C1C; --c-error-lt:#FEE2E2;
     --c-chart-bar:#2C4A6E; --c-chart-bar2:#C5D8EE; --c-toggle-knob:#FFFFFF;
-    --c-bullet-poor:#BBBBBB; --c-bullet-mid:#D8D8D8; --c-bullet-good:#EFEFEF;
+    --c-bullet-poor:#B8B8B8; --c-bullet-mid:#D0D0D0; --c-bullet-good:#E4E4E4;
+    --c-bullet-border:#C8C8C8; --c-bullet-bar:#2C4A6E;
   }
   html,body,#root { background:var(--c-base); color:var(--c-text); min-height:100%; width:100%;
     font-family:var(--ff-sans); font-size:var(--text-base); -webkit-font-smoothing:antialiased; }
@@ -78,7 +80,7 @@ const C = {
   warning:"var(--c-warning)",warningLt:"var(--c-warning-lt)",
   error:"var(--c-error)",errorLt:"var(--c-error-lt)",
   chartBar:"var(--c-chart-bar)",chartBar2:"var(--c-chart-bar2)",
-  bulletPoor:"var(--c-bullet-poor)",bulletMid:"var(--c-bullet-mid)",bulletGood:"var(--c-bullet-good)",
+  bulletPoor:"var(--c-bullet-poor)",bulletMid:"var(--c-bullet-mid)",bulletGood:"var(--c-bullet-good)",bulletBorder:"var(--c-bullet-border)",bulletBar:"var(--c-bullet-bar)",
 };
 // Typography — 0.875rem (14px) is the absolute floor, never go below
 const T = {
@@ -386,13 +388,13 @@ const BulletChart = ({value,target,ranges,label,unit=""}) => {
         <span style={{fontSize:T.sm,color:C.text,fontWeight:600,fontFamily:T.mono}}>{value>100?"N/M":`${value}${unit}`}</span>
       </div>
       {/* Track — no border per spec; ranges are single-hue intensities */}
-      <div style={{position:"relative",height:containerH,borderRadius:3,overflow:"hidden"}}>
+      <div style={{position:"relative",height:containerH,borderRadius:3,overflow:"hidden",border:`1px solid ${C.bulletBorder}`}}>
         {/* Qualitative ranges: dark (poor) → mid → light (good) */}
         <div style={{position:"absolute",left:0,top:0,height:"100%",width:`${(ranges[0]/max)*100}%`,background:C.bulletPoor}} />
         <div style={{position:"absolute",left:`${(ranges[0]/max)*100}%`,top:0,height:"100%",width:`${((ranges[1]-ranges[0])/max)*100}%`,background:C.bulletMid}} />
         <div style={{position:"absolute",left:`${(ranges[1]/max)*100}%`,top:0,height:"100%",width:`${((ranges[2]-ranges[1])/max)*100}%`,background:C.bulletGood}} />
         {/* Featured measure bar — ~1/3 height, centered vertically */}
-        {value<=100&&<div style={{position:"absolute",left:0,top:barTop,height:barH,width:`${(cv/max)*100}%`,background:C.chartBar,borderRadius:1}} />}
+        {value<=100&&<div style={{position:"absolute",left:0,top:barTop,height:barH,width:`${(cv/max)*100}%`,background:C.bulletBar,borderRadius:1}} />}
         {/* Comparative measure — short perpendicular line, less dominant than bar */}
         {target!=null&&<div style={{position:"absolute",left:`${(Math.min(target,max)/max)*100}%`,top:3,width:2,height:containerH-6,background:C.text,opacity:0.7,borderRadius:1}} />}
       </div>
@@ -812,10 +814,10 @@ const RiskView = ({goToTab}) => {
         <h2 style={{fontSize:T.h2,fontWeight:700,color:C.text,margin:0,fontFamily:T.sans}}>Risk Metrics</h2>
         <p style={{fontSize:T.sm,color:C.muted,margin:`${SP[1]} 0 ${SP[1]}`,fontFamily:T.mono}}>Sorted by Tier 1 exposure</p>
         <div role="list" aria-label="Risk zone legend" style={{display:"flex",gap:SP[2],fontSize:T.sm,color:C.muted,flexWrap:"wrap",alignItems:"center"}}>
-          <span role="listitem"><span style={{display:"inline-block",width:12,height:12,background:C.successLt,border:`1px solid ${C.success}`,borderRadius:2,marginRight:SP[1],verticalAlign:"middle"}} aria-hidden="true" />Low</span>
-          <span role="listitem"><span style={{display:"inline-block",width:12,height:12,background:C.warningLt,border:`1px solid ${C.warning}`,borderRadius:2,marginRight:SP[1],verticalAlign:"middle"}} aria-hidden="true" />Moderate</span>
-          <span role="listitem"><span style={{display:"inline-block",width:12,height:12,background:C.errorLt,border:`1px solid ${C.error}`,borderRadius:2,marginRight:SP[1],verticalAlign:"middle"}} aria-hidden="true" />Elevated</span>
-          <span role="listitem"><span style={{display:"inline-block",width:3,height:12,background:C.text,marginRight:SP[1],verticalAlign:"middle"}} aria-hidden="true" />Industry Avg</span>
+          <span role="listitem"><span style={{display:"inline-block",width:12,height:12,background:C.bulletGood,border:`1px solid ${C.bulletBorder}`,borderRadius:2,marginRight:SP[1],verticalAlign:"middle"}} aria-hidden="true" />Low</span>
+          <span role="listitem"><span style={{display:"inline-block",width:12,height:12,background:C.bulletMid,border:`1px solid ${C.bulletBorder}`,borderRadius:2,marginRight:SP[1],verticalAlign:"middle"}} aria-hidden="true" />Moderate</span>
+          <span role="listitem"><span style={{display:"inline-block",width:12,height:12,background:C.bulletPoor,border:`1px solid ${C.bulletBorder}`,borderRadius:2,marginRight:SP[1],verticalAlign:"middle"}} aria-hidden="true" />Elevated</span>
+          <span role="listitem"><span style={{display:"inline-block",width:3,height:12,background:C.text,opacity:0.7,marginRight:SP[1],verticalAlign:"middle"}} aria-hidden="true" />Industry Avg</span>
           <button onClick={()=>goToTab("guide")} style={{marginLeft:"auto",background:"transparent",border:`1px solid ${C.accent}`,color:C.accent,fontSize:T.sm,padding:`${SP[1]} ${SP[2]}`,borderRadius:4,cursor:"pointer",fontFamily:T.sans,fontWeight:600}}>? How to read</button>
         </div>
       </SectionHeader>
@@ -850,16 +852,16 @@ const GuideView = ({goToTab}) => (
           <BulletChart value={62} target={52} ranges={[40,65,100]} label="Example: NDFI / Tier 1 Capital" unit="%" />
         </div>
         <p style={{fontSize:T.base,color:C.muted,lineHeight:1.7,fontFamily:T.sans}}>
-          Each chart shows one risk metric for a single bank. The <span style={{color:C.secondary,fontWeight:600}}>blue bar</span> is the bank's actual value. The <span style={{color:C.text,fontWeight:600}}>white marker</span> is the industry average. The background bands show whether the value falls in a low, moderate, or elevated zone.
+          Each chart shows one risk metric for a single bank. The <span style={{color:C.bulletBar,fontWeight:600}}>blue bar</span> is the bank's actual value. The <span style={{color:C.muted,fontWeight:600}}>vertical marker</span> is the industry average. The background bands — from darker (elevated) to lighter (low) — show where the value falls.
         </p>
       </div>
       <div style={{fontSize:T.h3,fontWeight:700,color:C.accent,marginBottom:SP[2],fontFamily:T.sans}}>The Four Risk Metrics</div>
       {[
-        {borderColor:C.secondary,title:"NDFI / Tier 1 Capital",        body:"How much of a bank's core capital cushion is consumed by NDFI lending. The industry average is 52%. A bank at 90%+ has nearly its entire capital buffer exposed to alternative lenders.",scale:"Low: below 40% · Moderate: 40–65% · Elevated: above 65%"},
-        {borderColor:C.success,   title:"NDFI / Gross Loans",          body:"What percentage of the bank's total loan book goes to NDFIs. The industry average is about 10%. Some custody banks like State Street exceed 45%.",scale:"Low: below 8% · Moderate: 8–20% · Elevated: above 20%"},
-        {borderColor:C.accent,    title:"QoQ Growth",                  body:"How fast this bank grew its NDFI book in Q4 2025 compared to Q3. The industry average was 7.3%. Rapid growth above 12% may indicate loosened underwriting standards.",scale:"Low: below 5% · Moderate: 5–12% · Elevated: above 12%"},
-        {borderColor:"#A893D4",   title:"Delinquency Rate",            body:"What percentage of the bank's NDFI loans are past due. The industry average is 0.14%. PIK structures can mask real stress.",scale:"Low: below 0.10% · Moderate: 0.10–0.18% · Elevated: above 0.18%"},
-        {borderColor:C.text,      title:"The Industry Average Marker", body:"The vertical line marks the industry-wide average. If a bank's bar extends past it, that bank has above-average exposure relative to peers.",scale:null},
+        {borderColor:C.bulletBar,title:"NDFI / Tier 1 Capital",        body:"How much of a bank's core capital cushion is consumed by NDFI lending. The industry average is 52%. A bank at 90%+ has nearly its entire capital buffer exposed to alternative lenders.",scale:"Low: below 40% · Moderate: 40–65% · Elevated: above 65%"},
+        {borderColor:C.bulletBar, title:"NDFI / Gross Loans",          body:"What percentage of the bank's total loan book goes to NDFIs. The industry average is about 10%. Some custody banks like State Street exceed 45%.",scale:"Low: below 8% · Moderate: 8–20% · Elevated: above 20%"},
+        {borderColor:C.bulletBar, title:"QoQ Growth",                  body:"How fast this bank grew its NDFI book in Q4 2025 compared to Q3. The industry average was 7.3%. Rapid growth above 12% may indicate loosened underwriting standards.",scale:"Low: below 5% · Moderate: 5–12% · Elevated: above 12%"},
+        {borderColor:C.bulletBar, title:"Delinquency Rate",            body:"What percentage of the bank's NDFI loans are past due. The industry average is 0.14%. PIK structures can mask real stress.",scale:"Low: below 0.10% · Moderate: 0.10–0.18% · Elevated: above 0.18%"},
+        {borderColor:C.muted,     title:"The Industry Average Marker", body:"The vertical line marks the industry-wide average. If a bank's bar extends past it, that bank has above-average exposure relative to peers.",scale:null},
       ].map((item,i)=>(
         <div key={i} style={{padding:SP[2],background:C.surface,borderRadius:6,marginBottom:SP[1],borderLeft:`3px solid ${item.borderColor}`}}>
           <div style={{fontSize:T.base,fontWeight:700,color:C.text,marginBottom:SP[1],fontFamily:T.sans}}>{item.title}</div>
