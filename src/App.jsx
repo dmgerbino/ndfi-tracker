@@ -558,7 +558,7 @@ const DataTable = () => {
   const sectionRef   = useRef(null);
   const colHeaderRef = useRef(null);
   const [colTop,     setColTop]     = useState(BANNER_H + 88);
-  const [colHeadH,   setColHeadH]   = useState(48);
+  const [colHeadH,   setColHeadH]   = useState(42); // 40px header + 2px border
 
   // Measure SectionHeader height — updates colTop dynamically for any screen size
   useEffect(() => {
@@ -599,19 +599,27 @@ const DataTable = () => {
   const sorted = useMemo(()=>[...BANKS].sort((a,b)=>sortDir==="desc"?b[sortKey]-a[sortKey]:a[sortKey]-b[sortKey]),[sortKey,sortDir]);
   const toggleSort = (k) => { if(sortKey===k) setSortDir(d=>d==="desc"?"asc":"desc"); else{setSortKey(k);setSortDir("desc");} };
 
+  // ColHead: position:relative cell, label pinned top:5px, badge pinned bottom:5px
+  // All sizing in hard px — no flex row height dependency, no CSS variable font sizing
   const ColHead = ({k,children,align="right"}) => {
     const edu=COL_EDUCATION[k];
+    const isLeft = align==="left";
     return (
-      <div style={{padding:`${SP[1]} 4px`,userSelect:"none",
-        display:"flex",flexDirection:"row",flexWrap:"nowrap",
-        alignItems:"center",justifyContent:align==="left"?"flex-start":"flex-end",gap:4}}>
+      <div style={{position:"relative",height:40,userSelect:"none"}}>
         <button onClick={()=>toggleSort(k)} aria-label={`Sort by ${edu?.title||k}`}
-          style={{background:"none",border:"none",cursor:"pointer",
+          style={{position:"absolute",top:5,
+            left:isLeft?4:"auto", right:isLeft?"auto":4,
+            background:"none",border:"none",cursor:"pointer",
             color:sortKey===k?C.accent:C.muted,
-            fontFamily:T.mono,fontWeight:700,fontSize:T.sm,padding:0,whiteSpace:"nowrap"}}>
+            fontFamily:"monospace",fontWeight:700,fontSize:"13px",padding:0,
+            whiteSpace:"nowrap",lineHeight:"14px"}}>
           {children}{sortKey===k?(sortDir==="desc"?" ↓":" ↑"):""}
         </button>
-        {edu&&<InfoBadge onClick={e=>{e.stopPropagation();setColTip(edu);}} ariaLabel={`About ${edu.title}`} />}
+        <div style={{position:"absolute",bottom:5,
+          left:isLeft?4:"auto", right:isLeft?"auto":4,
+          width:16,height:16,display:"flex",alignItems:"center",justifyContent:"center"}}>
+          {edu && <InfoBadge onClick={e=>{e.stopPropagation();setColTip(edu);}} ariaLabel={`About ${edu.title}`} />}
+        </div>
       </div>
     );
   };
@@ -639,12 +647,16 @@ const DataTable = () => {
         </p>
       </SectionHeader>
 
-      {/* ── Header: fixed to viewport, synced horizontally to body scroll via JS ── */}
-      <div ref={colHeaderRef} style={{position:"fixed",top:colTop,left:0,right:0,zIndex:4,background:C.base,
-        maxWidth:768,margin:"0 auto",overflow:"visible"}}>
-        <div ref={headerRef} style={{overflowX:"hidden",overflowY:"visible",borderBottom:`2px solid ${C.border}`}}>
-          <div style={{display:"grid",gridTemplateColumns:"minmax(80px,1fr) 68px 58px 58px 56px 52px 68px",
-            minWidth:TABLE_MIN_W,padding:`0 ${SP[2]}`}}>
+      {/* ── Header: fixed, two explicit rows — labels (24px) + badges (20px) = 44px total ── */}
+      {/* ── Fixed column header: grid-template-rows:40px locks row height; overflowX:hidden on inner */}
+      {/* is safe because content height (40px) never exceeds container — no Y-coercion clipping */}
+      <div ref={colHeaderRef} style={{position:"fixed",top:colTop,left:0,right:0,zIndex:4,
+        background:C.base,maxWidth:768,margin:"0 auto",height:42,
+        borderBottom:`2px solid ${C.border}`,overflow:"hidden"}}>
+        <div ref={headerRef} style={{height:40}}>
+          <div style={{display:"grid",
+            gridTemplateColumns:"minmax(80px,1fr) 68px 58px 58px 56px 52px 68px",
+            minWidth:TABLE_MIN_W,padding:`0 ${SP[2]}`,height:40}}>
             <ColHead k="name" align="left">Bank</ColHead>
             <ColHead k="ndfiTotal">NDFI</ColHead>
             <ColHead k="ndfiPctLoans">%Loan</ColHead>
