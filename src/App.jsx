@@ -57,16 +57,18 @@ const GLOBAL_CSS = `
   .ndfi-tgl-track::after {
     content:'🌙'; font-size:14px; line-height:1; z-index:1;
   }
-  /* Sliding knob — sits on top of the icons */
+  /* Sliding knob — covers the inactive icon */
+  /* Light mode: knob RIGHT covers moon → shows sun */
+  /* Dark mode (checked): knob LEFT covers sun → shows moon */
   .ndfi-tgl-knob {
-    position:absolute; top:3px; left:3px;
+    position:absolute; top:3px; left:37px;
     width:24px; height:24px; border-radius:50%;
     background:var(--c-base);
     transition:transform 0.28s cubic-bezier(0.34,1.56,0.64,1);
     z-index:2; pointer-events:none;
     border:1px solid var(--c-border);
   }
-  .ndfi-tgl-inp:checked ~ .ndfi-tgl-knob { transform:translateX(32px); }
+  .ndfi-tgl-inp:checked + .ndfi-tgl-track .ndfi-tgl-knob { transform:translateX(-34px); }
   .ndfi-tgl-inp:focus-visible + .ndfi-tgl-track { outline:3px solid var(--c-accent); outline-offset:2px; border-radius:16px; }
 `;
 const SPONSOR_SRC = `data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPHN2ZyB2aWV3Qm94PSIwIDAgMjc1IDI3NSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8ZGVmcz4KICAgIDxjbGlwUGF0aCBpZD0iY2xpcFBhdGgyOTk5IiBjbGlwUGF0aFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CiAgICAgIDxwYXRoIGlkPSJwYXRoMzAwMSIgZD0iTSAwLDI0Ni44NjEgSCA0MzIgViAwIEggMCBaIi8+CiAgICA8L2NsaXBQYXRoPgogIDwvZGVmcz4KICA8ZyB0cmFuc2Zvcm09Im1hdHJpeCgxLjI1LCAwLCAwLCAtMS4yNSwgLTE0Mi45NTE3MjIsIDI4MC42NzUyOTQpIiBpZD0iZzI5OTMiPgogICAgPGcgaWQ9ImcyOTk1Ij4KICAgICAgPGcgY2xpcC1wYXRoPSJ1cmwoI2NsaXBQYXRoMjk5OSkiIGlkPSJnMjk5NyI+CiAgICAgICAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTQ0LjgwMTgsMTAxLjc4ODEpIiBpZD0iZzMwMDMiPgogICAgICAgICAgPHBhdGggaWQ9InBhdGgzMDA1IiBzdHlsZT0iZmlsbDojNTg1OTViO2ZpbGwtb3BhY2l0eToxO2ZpbGwtcnVsZTpub256ZXJvO3N0cm9rZTpub25lIiBkPSJtIDAsMCAtMC40NTgsLTAuMjg4IGMgLTcuNDc5LC0xMi4zMzcgLTEyLjE2OCwtMjMuNTcxIC0xMy4zNzQsLTMyLjE5NiAxLjMzNCwwLjIzOCAyLjY1LDAuNTYgMy45NzksMC45NDMgQyAtMTAuMzMxLC0yNC40MiAtNi45NjMsLTEyLjE1IDAsMCIvPgogICAgICAgIDwvZz4KICAgICAgICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxODIuODYwNCwxNDguNzM2MykiIGlkPSJnMzAwNyI+CiAgICAgICAgICA8cGF0aCBpZD0icGF0aDMwMDkiIHN0eWxlPSJmaWxsOiM1ODU5NWI7ZmlsbC1vcGFjaXR5OjE7ZmlsbC1ydWxlOm5vbnplcm87c3Ryb2tlOm5vbmUiIGQ9Im0gMCwwIGMgMC4zMDYsLTAuMTc1IDAuNDM5LDAuNDggMC43MzcsMC4yOTIgMTkuNDk3LDE4LjYxMyAzOC44OSwyOS42NyA1MC42OTYsMzAuNzAzIC0wLjIyNywwLjk3NyAtMC4zNTUsMS45OCAtMC40MjgsMi45ODcgQyAzNy40ODEsMzAuMjY4IDE4LjczNywxNy45NjYgMCwwIi8+CiAgICAgICAgPC9nPgogICAgICAgIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDE0OS41OTg2LDExNS40ODkzKSIgaWQ9ImczMDExIj4KICAgICAgICAgIDxwYXRoIGlkPSJwYXRoMzAxMyIgc3R5bGU9ImZpbGw6IzFjNzViYztmaWxsLW9wYWNpdHk6MTtmaWxsLXJ1bGU6bm9uemVybztzdHJva2U6bm9uZSIgZD0ibSAwLDAgLTAuNTQyLDkuODY4IHYgMTMuNzggSCAxMy4wNTkgViAtMTkuNjgxIEggLTAuMjQgbCAtMTUuNDY2LDIzLjU5MSAwLjU0MSwtOS44NjggdiAtMTMuNzIzIGggLTEzLjYwMSB2IDQzLjMyOSBoIDEzLjMgeiIvPgogICAgICAgIDwvZz4KICAgICAgICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxOTMuNzEwOSw5NS44MDg2KSIgaWQ9ImczMDE1Ij4KICAgICAgICAgIDxwYXRoIGlkPSJwYXRoMzAxNyIgc3R5bGU9ImZpbGw6IzFjNzViYztmaWxsLW9wYWNpdHk6MTtmaWxsLXJ1bGU6bm9uemVybztzdHJva2U6bm9uZSIgZD0ibSAwLDAgaCAtMTQuMjAzIHYgMTUuNzY5IGwgLTE2LjEyOCwyNy41NiBoIDE1Ljg4NyBMIC02Ljk4MiwyOC42NDYgMC40OCw0My4zMjkgSCAxNi4xMjcgTCAwLDE2LjAwOCBaIi8+CiAgICAgICAgPC9nPgogICAgICAgIDxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDIyOS45Mzc1LDExOS4zOTk0KSIgaWQ9ImczMDE5Ij4KICAgICAgICAgIDxwYXRoIGlkPSJwYXRoMzAyMSIgc3R5bGU9ImZpbGw6I2Y3OTQxZTtmaWxsLW9wYWNpdHk6MTtmaWxsLXJ1bGU6bm9uemVybztzdHJva2U6bm9uZSIgZD0iTSAwLDAgQyAxLjY4NiwwIDMuMDYxLDAuMzcxIDQuMTI0LDEuMTEzIDUuMTg2LDEuODU1IDUuNzE4LDMuMTY4IDUuNzE4LDUuMDU2IDUuNzE4LDYuMDU4IDUuNDY3LDYuODYgNC45NjUsNy40NjMgNC40NjMsOC4wNjMgMy44MzIsOC41MjQgMy4wNyw4Ljg0NiAyLjMwOSw5LjE2NyAxLjQ4NSw5LjM3NyAwLjYwMyw5LjQ3OSAtMC4yOCw5LjU3OCAtMS4xMDQsOS42MjggLTEuODY0LDkuNjI4IEggLTUuODk2IFYgMCBaIE0gLTIwLjEsLTIzLjU5MSBWIDE5LjczOCBIIDAuNzgzIGMgNi4yMTgsMCAxMC44NTMsLTEuMzIzIDEzLjkwMywtMy45NzIgMy4wNDcsLTIuNjQ3IDQuNTcyLC02LjE5OCA0LjU3MiwtMTAuNjUxIDAsLTIuMzI3IC0wLjM1MSwtNC40MzIgLTEuMDUzLC02LjMxOSBDIDE3LjUwMiwtMy4wOSAxNi40MDksLTQuNjkzIDE0LjkyNSwtNi4wMTkgMTMuNDQxLC03LjM0MiAxMS41NzQsLTguMzU1IDkuMzI4LC05LjA1NyA3LjA4MSwtOS43NTkgNC4zOTUsLTEwLjExIDEuMjY1LC0xMC4xMSBoIC03LjE2MSB2IC0xMy40ODEgeiIvPgogICAgICAgIDwvZz4KICAgICAgICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgyNjUuMDgyLDEyNi4wODAxKSIgaWQ9ImczMDIzIj4KICAgICAgICAgIDxwYXRoIGlkPSJwYXRoMzAyNSIgc3R5bGU9ImZpbGw6I2Y3OTQxZTtmaWxsLW9wYWNpdHk6MTtmaWxsLXJ1bGU6bm9uemVybztzdHJva2U6bm9uZSIgZD0iTSAwLDAgLTQuMzkzLC0xNS41MjcgSCA0LjU3NCBaIE0gLTIyLjYyNywtMzAuMjcxIC03LjEsMTMuMDU4IEggNy4zNDMgTCAyMi44NjksLTMwLjI3MSBIIDguNzI3IGwgLTEuNjg1LDUuNzE2IEggLTcuMSBsIC0xLjYyNiwtNS43MTYgeiIvPgogICAgICAgIDwvZz4KICAgICAgICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgzMTEuMDYwNSw5NS44MDg2KSIgaWQ9ImczMDI3Ij4KICAgICAgICAgIDxwYXRoIGlkPSJwYXRoMzAyOSIgc3R5bGU9ImZpbGw6I2Y3OTQxZTtmaWxsLW9wYWNpdHk6MTtmaWxsLXJ1bGU6bm9uemVybztzdHJva2U6bm9uZSIgZD0ibSAwLDAgaCAtMTQuMjAzIHYgMTUuNzY5IGwgLTE2LjEyNywyNy41NiBoIDE1Ljg4NyBMIC02Ljk4MSwyOC42NDYgMC40ODIsNDMuMzI5IEggMTYuMTI4IEwgMCwxNi4wMDggWiIvPgogICAgICAgIDwvZz4KICAgICAgICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgyMDYuNzk1OSw5Ni44NzAxKSIgaWQ9ImczMDMxIj4KICAgICAgICAgIDxwYXRoIGlkPSJwYXRoMzAzMyIgc3R5bGU9ImZpbGw6IzU4NTk1YjtmaWxsLW9wYWNpdHk6MTtmaWxsLXJ1bGU6bm9uemVybztzdHJva2U6bm9uZSIgZD0ibSAwLDAgYyAwLjEwNCwxLjg5NiAwLjA4MywzLjc5NSAwLjA3NCw1LjY4OSAtMjguNjMsLTMwLjY4NCAtNTkuMzE5LC00OC4yNiAtNjkuMDE4LC0zOS4zNSAtMS43NjUsMS42MjIgLTIuNzAyLDQuMDI1IC0yLjkwMyw3LjAzOCAtMS4zMjksLTAuMzgzIC0yLjY0NSwtMC43MDUgLTMuOTc5LC0wLjk0MyAtMC44OTEsLTYuMzcyIDAuMTA4LC0xMS4zMjUgMy4yODYsLTE0LjI0NiAxMC42OTUsLTkuODI5IDQyLjE5Miw2Ljc4OSA3Mi4zOTQsMzcuNDc2IEMgLTAuMTI5LC0yLjg5NCAtMC4wNzksLTEuNDQ4IDAsMCIvPgogICAgICAgIDwvZz4KICAgICAgICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgyNDIuODc0LDE3Ny41MDQ5KSIgaWQ9ImczMDM1Ij4KICAgICAgICAgIDxwYXRoIGlkPSJwYXRoMzAzNyIgc3R5bGU9ImZpbGw6IzU4NTk1YjtmaWxsLW9wYWNpdHk6MTtmaWxsLXJ1bGU6bm9uemVybztzdHJva2U6bm9uZSIgZD0ibSAwLDAgYyA1Ljc1LC01LjI4NCAyLjgzNywtMTguNzEyIC02LjM1LC0zNS4yNTEgMi4yMDgsLTAuNzY1IDQuNDY3LC0xLjM1NSA2LjY3OSwtMi4wMzcgQyAxMC44MTEsLTE4LjMxMyAxNC4wMDUsLTIuNjk0IDcuMTgxLDMuNTc4IDMuNzE4LDYuNzYxIC0xLjkzNSw3LjE1NiAtOS4wMDksNS4yMTQgLTguOTM2LDQuMjA2IC04LjgwOCwzLjIwMyAtOC41ODEsMi4yMjcgLTQuOTU1LDIuNTQzIC0yLjAxOCwxLjg1MyAwLDAiLz4KICAgICAgICA8L2c+CiAgICAgIDwvZz4KICAgIDwvZz4KICA8L2c+Cjwvc3ZnPg==`;
@@ -120,8 +122,7 @@ const ThemeToggle = () => {
   return (
     <label className="ndfi-tgl-lbl" aria-label={dark?"Switch to light mode":"Switch to dark mode"}>
       <input type="checkbox" role="switch" aria-checked={dark} checked={dark} onChange={toggle} className="ndfi-tgl-inp" />
-      <span className="ndfi-tgl-track" aria-hidden="true" />
-      <span className="ndfi-tgl-knob" aria-hidden="true" />
+      <span className="ndfi-tgl-track" aria-hidden="true"><span className="ndfi-tgl-knob" /></span>
       <span aria-live="polite" style={{position:"absolute",width:1,height:1,overflow:"hidden",clip:"rect(0,0,0,0)"}}>
         {dark?"Dark mode active":"Light mode active"}
       </span>
@@ -602,8 +603,8 @@ const DataTable = () => {
     const edu=COL_EDUCATION[k];
     return (
       <div style={{padding:`${SP[1]} 4px`,userSelect:"none",
-        display:"flex",flexDirection:"column",
-        alignItems:align==="left"?"flex-start":"flex-end",gap:4}}>
+        display:"flex",flexDirection:"row",flexWrap:"nowrap",
+        alignItems:"center",justifyContent:align==="left"?"flex-start":"flex-end",gap:4}}>
         <button onClick={()=>toggleSort(k)} aria-label={`Sort by ${edu?.title||k}`}
           style={{background:"none",border:"none",cursor:"pointer",
             color:sortKey===k?C.accent:C.muted,
@@ -640,8 +641,8 @@ const DataTable = () => {
 
       {/* ── Header: fixed to viewport, synced horizontally to body scroll via JS ── */}
       <div ref={colHeaderRef} style={{position:"fixed",top:colTop,left:0,right:0,zIndex:4,background:C.base,
-        borderBottom:`2px solid ${C.border}`,maxWidth:768,margin:"0 auto"}}>
-        <div ref={headerRef} style={{overflowX:"hidden",overflowY:"visible"}}>
+        maxWidth:768,margin:"0 auto",overflow:"visible"}}>
+        <div ref={headerRef} style={{overflowX:"hidden",overflowY:"visible",borderBottom:`2px solid ${C.border}`}}>
           <div style={{display:"grid",gridTemplateColumns:"minmax(80px,1fr) 68px 58px 58px 56px 52px 68px",
             minWidth:TABLE_MIN_W,padding:`0 ${SP[2]}`}}>
             <ColHead k="name" align="left">Bank</ColHead>
@@ -1031,7 +1032,7 @@ export default function App() {
         background:C.base,borderBottom:`1px solid ${C.border}`,
         maxWidth:768,margin:"0 auto",height:BANNER_H}}>
         <div style={{display:"flex",alignItems:"center",padding:`${SP[1]} ${SP[2]}`,gap:SP[2],height:"100%"}}>
-          <button onClick={()=>setTitleSheet(true)} aria-label="About NDFI Exposure Tracker"
+          <button onClick={()=>setTab("overview")} aria-label="Go to Overview"
             style={{background:"none",border:"none",cursor:"pointer",padding:0,flexShrink:0,
               width:52,height:52,display:"flex",alignItems:"center",justifyContent:"center"}}
             dangerouslySetInnerHTML={{__html:LOGO_SVG}} />
@@ -1042,7 +1043,7 @@ export default function App() {
               <span style={{fontSize:T.sm,color:C.subtle,fontFamily:T.mono,whiteSpace:"nowrap"}}>v1.5.2</span>
             </div>
             {/* T.sm = 0.875rem = 14px — the compliant minimum */}
-            <p style={{margin:`${SP[1]} 0 0`,fontSize:T.sm,color:C.muted,fontFamily:T.sans,fontStyle:"italic",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+            <p style={{margin:`${SP[1]} 0 0`,fontSize:T.sm,color:C.muted,fontFamily:T.sans,fontStyle:"italic",overflow:"hidden",textOverflow:"ellipsis",lineHeight:1.3}}>
               Tracking U.S. commercial bank lending to NDFIs&nbsp;<span style={{color:C.accent,fontStyle:"normal"}} aria-hidden="true">ⓘ</span>
             </p>
           </button>
