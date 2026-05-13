@@ -652,7 +652,7 @@ const DataTable = () => {
       <div ref={colHeaderRef} style={{position:"fixed",top:colTop,left:0,right:0,zIndex:6,
         background:C.base,maxWidth:768,margin:"0 auto",height:42,
         borderBottom:`2px solid ${C.border}`,overflow:"hidden"}}>
-        <div ref={headerRef} style={{height:40}}>
+        <div ref={headerRef} style={{height:40,overflow:"hidden"}}>
           <div style={{display:"grid",
             gridTemplateColumns:"minmax(80px,1fr) 68px 58px 58px 56px 52px 68px",
             minWidth:TABLE_MIN_W,padding:`0 ${SP[2]}`,height:40}}>
