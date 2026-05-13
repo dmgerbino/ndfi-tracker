@@ -557,17 +557,16 @@ const DataTable = () => {
   const bodyRef      = useRef(null);
   const sectionRef   = useRef(null);
   const colHeaderRef = useRef(null);
-  const [colTop,     setColTop]     = useState(BANNER_H + 88);
+  const [colTop,     setColTop]     = useState(BANNER_H + 120);
   const [colHeadH,   setColHeadH]   = useState(42); // 40px header + 2px border
 
   // Measure SectionHeader height — updates colTop dynamically for any screen size
   useEffect(() => {
     const el = sectionRef.current;
     if (!el) return;
-    const ro = new ResizeObserver(entries => {
-      for (const entry of entries) {
-        setColTop(BANNER_H + Math.ceil(entry.contentRect.height));
-      }
+    const ro = new ResizeObserver(() => {
+      // offsetHeight includes padding + border — contentRect.height does not
+      setColTop(BANNER_H + Math.ceil(el.offsetHeight));
     });
     ro.observe(el);
     return () => ro.disconnect();
@@ -650,7 +649,7 @@ const DataTable = () => {
       {/* ── Header: fixed, two explicit rows — labels (24px) + badges (20px) = 44px total ── */}
       {/* ── Fixed column header: grid-template-rows:40px locks row height; overflowX:hidden on inner */}
       {/* is safe because content height (40px) never exceeds container — no Y-coercion clipping */}
-      <div ref={colHeaderRef} style={{position:"fixed",top:colTop,left:0,right:0,zIndex:4,
+      <div ref={colHeaderRef} style={{position:"fixed",top:colTop,left:0,right:0,zIndex:6,
         background:C.base,maxWidth:768,margin:"0 auto",height:42,
         borderBottom:`2px solid ${C.border}`,overflow:"hidden"}}>
         <div ref={headerRef} style={{height:40}}>
